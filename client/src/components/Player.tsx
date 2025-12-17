@@ -2,12 +2,20 @@ import { Play, SkipBack, SkipForward, Volume2, Heart, Mic2 } from "lucide-react"
 import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import cover from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
+import { cn } from "@/lib/utils";
 
-export function Player() {
+interface PlayerProps {
+  className?: string;
+}
+
+export function Player({ className }: PlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <div className="h-auto md:h-24 bg-card/95 backdrop-blur-xl border-t border-border fixed bottom-0 left-0 right-0 z-30 px-4 md:px-6 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
+    <div className={cn(
+      "h-16 md:h-24 bg-card/95 backdrop-blur-xl border-t border-border fixed left-0 right-0 z-30 px-4 md:px-6 py-2 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 transition-all duration-300",
+      className || "bottom-0"
+    )}>
       {/* Track Info */}
       <div className="flex items-center gap-4 w-full md:w-1/4">
         <div className="w-12 h-12 md:w-14 md:h-14 rounded-md overflow-hidden relative group flex-shrink-0">

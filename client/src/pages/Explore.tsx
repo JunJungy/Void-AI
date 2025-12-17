@@ -46,7 +46,7 @@ export default function Explore() {
         </section>
       </main>
 
-      <Player />
+      <Player className="bottom-16 lg:bottom-0" />
     </div>
   );
 }

@@ -49,7 +49,7 @@ export default function Library() {
         </Tabs>
       </main>
 
-      <Player />
+      <Player className="bottom-16 lg:bottom-0" />
     </div>
   );
 }

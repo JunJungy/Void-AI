@@ -10,9 +10,20 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
       
-      <main className="lg:pl-64 pb-28 pt-4 lg:pt-0">
-        {/* Hero Section */}
-        <div className="relative h-[400px] w-full overflow-hidden">
+      <main className="lg:pl-64 pb-48 pt-4 lg:pt-0">
+        {/* Mobile Header */}
+        <div className="lg:hidden px-6 mb-6 flex items-center justify-between">
+           <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center font-bold text-white">V</div>
+              <span className="font-display font-bold text-xl">VOID</span>
+           </div>
+           <button className="px-4 py-1.5 bg-white text-black rounded-full text-xs font-bold">
+             Subscribe
+           </button>
+        </div>
+
+        {/* Hero Section - Desktop Only */}
+        <div className="relative h-[400px] w-full overflow-hidden hidden lg:block">
           <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-background/50 to-background z-10" />
           <div className="absolute inset-0 bg-[url('@assets/generated_images/nebula_ethereal_album_art.png')] bg-cover bg-center opacity-40 animate-pulse-slow" />
           
@@ -68,7 +79,7 @@ export default function Home() {
         </div>
       </main>
 
-      <Player />
+      <Player className="bottom-16 lg:bottom-0" />
     </div>
   );
 }
