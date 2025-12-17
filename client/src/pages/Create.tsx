@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check, Lock, Gem, Crown } from "lucide-react";
+import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check, Lock, Gem, Crown, Loader2, Play } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { addTrack, Track } from "@/lib/data";
+import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
+import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
+import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
 
 const AI_MODELS = [
   { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music.", plan: "free" },
@@ -26,15 +30,16 @@ const AI_MODELS = [
 export default function Create() {
   const [isInstrumental, setIsInstrumental] = useState(false);
   const [prompt, setPrompt] = useState("");
+  const [lyrics, setLyrics] = useState("");
+  const [title, setTitle] = useState("");
   const [mode, setMode] = useState<"simple" | "custom">("custom");
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedTrack, setGeneratedTrack] = useState<Track | null>(null);
   const { toast } = useToast();
 
   const handleModelSelect = (model: typeof AI_MODELS[0]) => {
     if (model.plan !== "free") {
-      // For mockup purposes, we'll just show a toast instead of blocking completely
-      // or we could simulate being on a free plan.
       toast({
         title: `Upgrade to ${model.plan === "ruby" ? "Ruby" : "Pro"} Plan`,
         description: `The ${model.name} model requires a ${model.plan === "ruby" ? "Ruby" : "Pro"} subscription.`,
@@ -43,6 +48,42 @@ export default function Create() {
       return; 
     }
     setSelectedModel(model);
+  };
+
+  const handleGenerate = () => {
+    if (!prompt && mode === "custom") {
+      toast({
+        title: "Prompt required",
+        description: "Please enter a style description for your song.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedTrack(null);
+
+    // Simulate generation delay
+    setTimeout(() => {
+      const newTrack: Track = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: title || (mode === "simple" ? "Generated Song" : prompt.split(",")[0] || "Untitled Track"),
+        artist: "User",
+        cover: [cover1, cover2, cover3][Math.floor(Math.random() * 3)],
+        duration: "2:15",
+        plays: "0",
+        tags: prompt.split(",").map(s => s.trim()).filter(Boolean).slice(0, 3)
+      };
+
+      addTrack(newTrack);
+      setGeneratedTrack(newTrack);
+      setIsGenerating(false);
+      
+      toast({
+        title: "Track Generated!",
+        description: "Your new song is ready to play.",
+      });
+    }, 3000);
   };
 
   return (
@@ -145,6 +186,8 @@ export default function Create() {
                   </div>
                 </div>
                 <textarea 
+                  value={lyrics}
+                  onChange={(e) => setLyrics(e.target.value)}
                   placeholder="Write some lyrics or a prompt — or leave blank for instrumental"
                   className="w-full flex-1 bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base leading-relaxed"
                 />
@@ -186,6 +229,8 @@ export default function Create() {
                  <Music2 className="w-4 h-4 text-muted-foreground" />
                  <input 
                    type="text" 
+                   value={title}
+                   onChange={(e) => setTitle(e.target.value)}
                    placeholder="Song Title (Optional)"
                    className="flex-1 bg-transparent border-none focus:outline-none text-sm"
                  />
@@ -203,6 +248,8 @@ export default function Create() {
                   </div>
                 </div>
                 <textarea 
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
                   placeholder="A song about..."
                   className="w-full bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base h-32"
                 />
@@ -223,12 +270,57 @@ export default function Create() {
              </div>
           )}
 
+          {/* Generated Track Display */}
+          {generatedTrack && (
+            <div className="bg-card border border-primary/20 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-4">
+              <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Just Created
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="relative w-16 h-16 rounded-lg overflow-hidden group cursor-pointer">
+                  <img src={generatedTrack.cover} alt={generatedTrack.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <Play className="w-6 h-6 fill-white text-white" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold truncate">{generatedTrack.title}</h4>
+                  <p className="text-xs text-muted-foreground truncate">{generatedTrack.artist}</p>
+                  <div className="flex gap-1 mt-1">
+                    {generatedTrack.tags.map(tag => (
+                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Create Button - Sticky Bottom */}
-          <div className="fixed bottom-20 left-0 right-0 px-4 py-4 bg-gradient-to-t from-background via-background to-transparent pointer-events-none lg:static lg:bg-none lg:p-0">
+          <div className="fixed bottom-20 left-0 right-0 px-4 py-4 bg-gradient-to-t from-background via-background to-transparent pointer-events-none lg:static lg:bg-none lg:p-0 z-20">
             <div className="max-w-md mx-auto pointer-events-auto">
-              <button className="w-full py-4 bg-secondary hover:bg-secondary/80 text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 text-lg shadow-lg shadow-black/50">
-                <Wand2 className="w-5 h-5 opacity-50" />
-                <span className="opacity-50">Create</span>
+              <button 
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className={cn(
+                  "w-full py-4 bg-secondary hover:bg-secondary/80 text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 text-lg shadow-lg shadow-black/50",
+                  isGenerating && "opacity-80 cursor-wait"
+                )}
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Creating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-5 h-5 opacity-50" />
+                    <span className="opacity-50">Create</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

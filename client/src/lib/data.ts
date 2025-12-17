@@ -80,3 +80,7 @@ export const RECENT_TRACKS: Track[] = [
     tags: ["Pop", "Happy"]
   }
 ];
+
+export function addTrack(track: Track) {
+  RECENT_TRACKS.unshift(track);
+}
