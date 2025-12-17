@@ -1,16 +1,33 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const AI_MODELS = [
+  { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music." },
+  { id: "v2.5", name: "v2.5", description: "Improved structure and coherence. Better instrument separation." },
+  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes." },
+  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals." },
+  { id: "v4.5", name: "v4.5", description: "Advanced composition. Best for multi-genre fusion." },
+  { id: "v5", name: "v5", description: "State of the art. Ultra-realistic production and mastering." },
+  { id: "v6", name: "v6", description: "Experimental. Next-gen neural synthesis engine." },
+];
 
 export default function Create() {
   const [isInstrumental, setIsInstrumental] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<"simple" | "custom">("custom");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(AI_MODELS[0]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -53,10 +70,32 @@ export default function Create() {
                 </button>
              </div>
 
-             <div className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2">
-               <span>v4.5-all</span>
-               <ChevronDown className="w-3 h-3" />
-             </div>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2 hover:bg-secondary/80 transition-colors">
+                  <span>{selectedModel.name}</span>
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64 bg-card border border-white/10 p-2 rounded-xl shadow-xl max-h-[300px] overflow-y-auto">
+                {AI_MODELS.map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => setSelectedModel(model)}
+                    className={cn(
+                      "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50",
+                      selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-bold text-sm">{model.name}</span>
+                      {selectedModel.id === model.id && <Check className="w-3 h-3 text-primary" />}
+                    </div>
+                    <span className="text-xs text-muted-foreground leading-tight">{model.description}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {mode === "custom" ? (
