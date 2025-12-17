@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check, Lock, Gem, Crown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -11,15 +11,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 const AI_MODELS = [
-  { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music." },
-  { id: "v2.5", name: "v2.5", description: "Improved structure and coherence. Better instrument separation." },
-  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes." },
-  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals." },
-  { id: "v4.5", name: "v4.5", description: "Advanced composition. Best for multi-genre fusion." },
-  { id: "v5", name: "v5", description: "State of the art. Ultra-realistic production and mastering." },
-  { id: "v6", name: "v6", description: "Experimental. Next-gen neural synthesis engine." },
+  { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music.", plan: "free" },
+  { id: "v2.5", name: "v2.5", description: "Improved structure and coherence. Better instrument separation.", plan: "ruby" },
+  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes.", plan: "free" },
+  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals.", plan: "free" },
+  { id: "v4.5", name: "v4.5", description: "Advanced composition. Best for multi-genre fusion.", plan: "pro" },
+  { id: "v5", name: "v5", description: "State of the art. Ultra-realistic production and mastering.", plan: "pro" },
+  { id: "v6", name: "v6", description: "Experimental. Next-gen neural synthesis engine.", plan: "pro" },
 ];
 
 export default function Create() {
@@ -28,6 +29,21 @@ export default function Create() {
   const [mode, setMode] = useState<"simple" | "custom">("custom");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0]);
+  const { toast } = useToast();
+
+  const handleModelSelect = (model: typeof AI_MODELS[0]) => {
+    if (model.plan !== "free") {
+      // For mockup purposes, we'll just show a toast instead of blocking completely
+      // or we could simulate being on a free plan.
+      toast({
+        title: `Upgrade to ${model.plan === "ruby" ? "Ruby" : "Pro"} Plan`,
+        description: `The ${model.name} model requires a ${model.plan === "ruby" ? "Ruby" : "Pro"} subscription.`,
+        variant: "destructive",
+      });
+      return; 
+    }
+    setSelectedModel(model);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -77,19 +93,36 @@ export default function Create() {
                   <ChevronDown className="w-3 h-3" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-64 bg-card border border-white/10 p-2 rounded-xl shadow-xl max-h-[300px] overflow-y-auto">
+              <DropdownMenuContent className="w-72 bg-card border border-white/10 p-2 rounded-xl shadow-xl max-h-[400px] overflow-y-auto z-50">
                 {AI_MODELS.map((model) => (
                   <DropdownMenuItem
                     key={model.id}
-                    onClick={() => setSelectedModel(model)}
+                    onClick={() => handleModelSelect(model)}
                     className={cn(
-                      "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50",
-                      selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30"
+                      "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50 mb-1 relative overflow-hidden",
+                      selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30",
+                      model.plan !== "free" && "opacity-90"
                     )}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="font-bold text-sm">{model.name}</span>
-                      {selectedModel.id === model.id && <Check className="w-3 h-3 text-primary" />}
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm">{model.name}</span>
+                        {model.plan === "pro" && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                            <Crown className="w-3 h-3" /> PRO
+                          </span>
+                        )}
+                        {model.plan === "ruby" && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+                            <Gem className="w-3 h-3" /> RUBY
+                          </span>
+                        )}
+                      </div>
+                      {selectedModel.id === model.id ? (
+                        <Check className="w-3 h-3 text-primary" />
+                      ) : (
+                         model.plan !== "free" && <Lock className="w-3 h-3 text-muted-foreground" />
+                      )}
                     </div>
                     <span className="text-xs text-muted-foreground leading-tight">{model.description}</span>
                   </DropdownMenuItem>
