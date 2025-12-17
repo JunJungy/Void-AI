@@ -9,18 +9,18 @@ export default function Library() {
     <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
       
-      <main className="pl-64 pb-28 pt-8 px-12">
-        <h1 className="text-4xl font-display font-bold mb-8">Your Library</h1>
+      <main className="lg:pl-64 pb-28 pt-8 px-6 md:px-12">
+        <h1 className="text-3xl md:text-4xl font-display font-bold mb-8">Your Library</h1>
 
         <Tabs defaultValue="created" className="w-full">
-          <TabsList className="bg-secondary/50 border border-white/5 p-1 mb-8">
-            <TabsTrigger value="created" className="data-[state=active]:bg-primary data-[state=active]:text-white">Created</TabsTrigger>
-            <TabsTrigger value="liked" className="data-[state=active]:bg-primary data-[state=active]:text-white">Liked Songs</TabsTrigger>
-            <TabsTrigger value="playlists" className="data-[state=active]:bg-primary data-[state=active]:text-white">Playlists</TabsTrigger>
+          <TabsList className="bg-secondary/50 border border-white/5 p-1 mb-8 w-full md:w-auto flex overflow-x-auto">
+            <TabsTrigger value="created" className="flex-1 md:flex-none data-[state=active]:bg-primary data-[state=active]:text-white">Created</TabsTrigger>
+            <TabsTrigger value="liked" className="flex-1 md:flex-none data-[state=active]:bg-primary data-[state=active]:text-white">Liked Songs</TabsTrigger>
+            <TabsTrigger value="playlists" className="flex-1 md:flex-none data-[state=active]:bg-primary data-[state=active]:text-white">Playlists</TabsTrigger>
           </TabsList>
           
           <TabsContent value="created" className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {RECENT_TRACKS.map(track => (
                 <TrackCard key={track.id} track={track} />
               ))}

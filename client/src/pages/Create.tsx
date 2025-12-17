@@ -13,16 +13,16 @@ export default function Create() {
     <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
       
-      <main className="pl-64 pb-28 pt-8 px-12">
+      <main className="lg:pl-64 pb-28 pt-8 px-6 md:px-12">
         <div className="max-w-3xl mx-auto space-y-8">
           <div>
-            <h1 className="text-4xl font-display font-bold mb-2">Create New Track</h1>
+            <h1 className="text-3xl md:text-4xl font-display font-bold mb-2">Create New Track</h1>
             <p className="text-muted-foreground">Describe the song you want to create and let Void AI handle the rest.</p>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="bg-card border border-border rounded-2xl p-4 md:p-6 space-y-6 shadow-xl">
             {/* Mode Switch */}
-            <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-secondary/30 rounded-xl border border-white/5 gap-4">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-full ${isInstrumental ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground'}`}>
                   <Music2 className="w-6 h-6" />
@@ -32,7 +32,9 @@ export default function Create() {
                   <p className="text-sm text-muted-foreground">Generate music without vocals</p>
                 </div>
               </div>
-              <Switch checked={isInstrumental} onCheckedChange={setIsInstrumental} />
+              <div className="flex justify-end">
+                <Switch checked={isInstrumental} onCheckedChange={setIsInstrumental} />
+              </div>
             </div>
 
             {/* Prompt Input */}

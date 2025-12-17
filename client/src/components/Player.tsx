@@ -7,18 +7,18 @@ export function Player() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <div className="h-24 bg-card/95 backdrop-blur-xl border-t border-border fixed bottom-0 left-0 right-0 z-30 px-6 flex items-center justify-between">
+    <div className="h-auto md:h-24 bg-card/95 backdrop-blur-xl border-t border-border fixed bottom-0 left-0 right-0 z-30 px-4 md:px-6 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0">
       {/* Track Info */}
-      <div className="flex items-center gap-4 w-1/4">
-        <div className="w-14 h-14 rounded-md overflow-hidden relative group">
+      <div className="flex items-center gap-4 w-full md:w-1/4">
+        <div className="w-12 h-12 md:w-14 md:h-14 rounded-md overflow-hidden relative group flex-shrink-0">
           <img src={cover} alt="Now Playing" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center">
             <div className="w-2 h-2 bg-white rounded-full animate-ping" />
           </div>
         </div>
-        <div>
-          <h4 className="font-medium text-white text-sm">Neon Horizon</h4>
-          <p className="text-xs text-muted-foreground">CyberVoid</p>
+        <div className="min-w-0 flex-1">
+          <h4 className="font-medium text-white text-sm truncate">Neon Horizon</h4>
+          <p className="text-xs text-muted-foreground truncate">CyberVoid</p>
         </div>
         <button className="text-muted-foreground hover:text-primary transition-colors ml-2">
           <Heart className="w-4 h-4" />
@@ -26,7 +26,7 @@ export function Player() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col items-center flex-1 max-w-2xl px-4">
+      <div className="flex flex-col items-center flex-1 w-full max-w-2xl px-0 md:px-4">
         <div className="flex items-center gap-6 mb-2">
           <button className="text-muted-foreground hover:text-foreground transition-colors">
             <SkipBack className="w-5 h-5" />
@@ -49,7 +49,7 @@ export function Player() {
           </button>
         </div>
         
-        <div className="w-full flex items-center gap-3">
+        <div className="w-full flex items-center gap-3 hidden md:flex">
           <span className="text-xs text-muted-foreground font-mono">1:23</span>
           <div className="h-1 flex-1 bg-secondary rounded-full overflow-hidden relative group cursor-pointer">
             <div className="absolute top-0 left-0 h-full w-1/3 bg-primary group-hover:bg-primary/80 transition-colors" />
@@ -58,8 +58,8 @@ export function Player() {
         </div>
       </div>
 
-      {/* Volume & Extras */}
-      <div className="flex items-center justify-end gap-4 w-1/4">
+      {/* Volume & Extras - Hidden on mobile */}
+      <div className="hidden md:flex items-center justify-end gap-4 w-1/4">
         <button className="text-muted-foreground hover:text-foreground">
           <Mic2 className="w-4 h-4" />
         </button>
