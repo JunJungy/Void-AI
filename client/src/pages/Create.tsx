@@ -16,8 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 const AI_MODELS = [
   { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music.", plan: "free" },
   { id: "v2.5", name: "v2.5", description: "Improved structure and coherence. Better instrument separation.", plan: "ruby" },
-  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes.", plan: "free" },
-  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals.", plan: "free" },
+  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes.", plan: "ruby" },
+  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals.", plan: "ruby" },
   { id: "v4.5", name: "v4.5", description: "Advanced composition. Best for multi-genre fusion.", plan: "pro" },
   { id: "v5", name: "v5", description: "State of the art. Ultra-realistic production and mastering.", plan: "pro" },
   { id: "v6", name: "v6", description: "Experimental. Next-gen neural synthesis engine.", plan: "pro" },
