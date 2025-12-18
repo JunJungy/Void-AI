@@ -5,21 +5,45 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url").default("https://cdn-icons-png.flaticon.com/512/2977/2977485.png"),
+  bio: text("bio"),
+  planType: text("plan_type").default("free"),
+  isOwner: boolean("is_owner").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export const updateProfileSchema = z.object({
+  username: z.string().min(3).max(30).optional(),
+  displayName: z.string().max(50).optional(),
+  avatarUrl: z.string().url().optional(),
+  bio: z.string().max(300).optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 
 export const tracks = pgTable("tracks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   taskId: text("task_id").notNull(),
+  userId: varchar("user_id").references(() => users.id),
   title: text("title").notNull(),
   prompt: text("prompt"),
   style: text("style"),

@@ -1,12 +1,15 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink } from "lucide-react";
+import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink, Edit2, Check, X } from "lucide-react";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
+import { useAuth } from "@/lib/authContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; description: string; bgColor: string; borderColor: string }> = {
   free: { 
@@ -57,10 +60,19 @@ interface SubscriptionPlan {
 }
 
 export default function Profile() {
+  const { user, isLoading: authLoading, isAuthenticated, logout, updateProfile } = useAuth();
   const { currentPlan, setPlan } = useSubscription();
   const { toast } = useToast();
-  const [location] = useLocation();
-  const planInfo = PLAN_INFO[currentPlan];
+  const [location, setLocation] = useLocation();
+  
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const planType = (user?.planType || "free") as PlanType;
+  const planInfo = PLAN_INFO[planType] || PLAN_INFO.free;
   const PlanIcon = planInfo.icon;
 
   const { data: plansData, isLoading: plansLoading } = useQuery<{ plans: SubscriptionPlan[] }>({
@@ -96,12 +108,19 @@ export default function Profile() {
     }
   }, [location, setPlan, toast]);
 
+  useEffect(() => {
+    if (user) {
+      setEditUsername(user.username);
+      setEditBio(user.bio || "");
+    }
+  }, [user]);
+
   const handleCheckout = async (priceId: string, planType: string) => {
     try {
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, planType }),
+        body: JSON.stringify({ priceId, planType, email: user?.email }),
       });
       
       const data = await response.json();
@@ -117,6 +136,37 @@ export default function Profile() {
         description: "Failed to start checkout. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    if (!editUsername.trim() || editUsername.length < 3) {
+      toast({ title: "Error", description: "Username must be at least 3 characters", variant: "destructive" });
+      return;
+    }
+    
+    setIsSaving(true);
+    const { success, error } = await updateProfile({ username: editUsername.trim() });
+    setIsSaving(false);
+    
+    if (success) {
+      setIsEditingUsername(false);
+      toast({ title: "Username Updated", description: "Your changes have been saved." });
+    } else {
+      toast({ title: "Error", description: error || "Failed to update username", variant: "destructive" });
+    }
+  };
+
+  const handleSaveBio = async () => {
+    setIsSaving(true);
+    const { success, error } = await updateProfile({ bio: editBio.trim() });
+    setIsSaving(false);
+    
+    if (success) {
+      setIsEditingBio(false);
+      toast({ title: "Bio Updated", description: "Your changes have been saved." });
+    } else {
+      toast({ title: "Error", description: error || "Failed to update bio", variant: "destructive" });
     }
   };
 
@@ -142,6 +192,19 @@ export default function Profile() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    setLocation("/login");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
@@ -150,13 +213,81 @@ export default function Profile() {
         <div className="max-w-lg mx-auto space-y-6">
           {/* Profile Header */}
           <div className="flex flex-col items-center text-center py-6">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-purple-400 p-1 mb-4">
-              <div className="w-full h-full rounded-full bg-card flex items-center justify-center">
-                <User className="w-10 h-10 text-white" />
-              </div>
+            <div className="relative w-24 h-24 mb-4">
+              <img
+                src={user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/2977/2977485.png"}
+                alt="Profile"
+                className="w-full h-full rounded-full object-cover border-4 border-primary/30"
+                data-testid="img-avatar"
+              />
+              {user?.isOwner && (
+                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full p-1">
+                  <Crown className="w-4 h-4 text-white" />
+                </div>
+              )}
             </div>
-            <h1 className="text-2xl font-bold" data-testid="text-profile-name">Guest User</h1>
-            <p className="text-sm text-muted-foreground">guest@voidai.app</p>
+            
+            {/* Display Name / Username */}
+            {isEditingUsername ? (
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  value={editUsername}
+                  onChange={(e) => setEditUsername(e.target.value)}
+                  className="w-48 bg-card border-white/10 text-center"
+                  data-testid="input-username"
+                />
+                <button onClick={handleSaveUsername} disabled={isSaving} className="p-1 text-green-400 hover:text-green-300">
+                  <Check className="w-5 h-5" />
+                </button>
+                <button onClick={() => { setIsEditingUsername(false); setEditUsername(user?.username || ""); }} className="p-1 text-red-400 hover:text-red-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-1">
+                <h1 className="text-2xl font-bold" data-testid="text-username">
+                  {user?.displayName || user?.username}
+                </h1>
+                <button onClick={() => setIsEditingUsername(true)} className="p-1 text-muted-foreground hover:text-white">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            
+            <p className="text-sm text-muted-foreground">@{user?.username}</p>
+            <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+            
+            {/* Bio */}
+            <div className="mt-4 w-full">
+              {isEditingBio ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={editBio}
+                    onChange={(e) => setEditBio(e.target.value)}
+                    placeholder="Tell us about yourself..."
+                    className="bg-card border-white/10 text-center resize-none"
+                    rows={3}
+                    maxLength={300}
+                    data-testid="input-bio"
+                  />
+                  <div className="flex justify-center gap-2">
+                    <button onClick={handleSaveBio} disabled={isSaving} className="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-sm">
+                      Save
+                    </button>
+                    <button onClick={() => { setIsEditingBio(false); setEditBio(user?.bio || ""); }} className="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setIsEditingBio(true)}
+                  className="text-sm text-muted-foreground hover:text-white transition-colors"
+                >
+                  {user?.bio || "Add a bio..."}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Current Plan */}
@@ -180,7 +311,7 @@ export default function Profile() {
           </div>
 
           {/* Upgrade Plans */}
-          {currentPlan !== "diamond" && (
+          {planType !== "diamond" && (
             <div className="bg-card border border-white/5 rounded-2xl p-5">
               <h2 className="font-bold mb-4">Upgrade Your Plan</h2>
               
@@ -191,30 +322,31 @@ export default function Profile() {
               ) : plansData?.plans && plansData.plans.length > 0 ? (
                 <div className="space-y-3">
                   {plansData.plans.map((plan) => {
-                    const planType = plan.metadata?.plan_type || plan.name.toLowerCase().replace(' plan', '');
-                    const Icon = getPlanIcon(planType);
+                    const planTypeKey = plan.metadata?.plan_type || plan.name.toLowerCase().replace(' plan', '');
+                    const Icon = getPlanIcon(planTypeKey);
                     const price = plan.prices[0];
-                    const isCurrentPlan = currentPlan === planType;
+                    const isCurrentPlan = planType === planTypeKey;
                     
                     if (isCurrentPlan) return null;
                     
                     return (
                       <button
                         key={plan.id}
-                        onClick={() => price && handleCheckout(price.id, planType)}
+                        onClick={() => price && handleCheckout(price.id, planTypeKey)}
                         disabled={!price}
                         className={cn(
                           "w-full p-4 rounded-xl border transition-all text-left",
-                          planType === 'ruby' && "bg-red-500/10 border-red-500/20 hover:bg-red-500/20",
-                          planType === 'pro' && "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20",
-                          planType === 'diamond' && "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20",
+                          planTypeKey === 'ruby' && "bg-red-500/10 border-red-500/20 hover:bg-red-500/20",
+                          planTypeKey === 'pro' && "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20",
+                          planTypeKey === 'diamond' && "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20",
                         )}
+                        data-testid={`button-upgrade-${planTypeKey}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {Icon && <Icon className={cn("w-6 h-6", getPlanColor(planType))} />}
+                            {Icon && <Icon className={cn("w-6 h-6", getPlanColor(planTypeKey))} />}
                             <div>
-                              <h3 className={cn("font-bold", getPlanColor(planType))}>{plan.name}</h3>
+                              <h3 className={cn("font-bold", getPlanColor(planTypeKey))}>{plan.name}</h3>
                               <p className="text-xs text-muted-foreground">{plan.description}</p>
                             </div>
                           </div>
@@ -255,22 +387,15 @@ export default function Profile() {
               <span className="flex-1 text-left">Billing</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
-            <button className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors text-red-400">
+            <button 
+              onClick={logout}
+              className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors text-red-400"
+              data-testid="button-logout"
+            >
               <LogOut className="w-5 h-5" />
               <span className="flex-1 text-left">Sign Out</span>
             </button>
           </div>
-
-          {/* Reset Plan (Demo) */}
-          <button
-            onClick={() => {
-              setPlan("free");
-              toast({ title: "Plan Reset", description: "You're back on the Free plan." });
-            }}
-            className="w-full text-xs text-muted-foreground hover:text-white transition-colors py-2"
-          >
-            Reset to Free Plan (Demo)
-          </button>
         </div>
       </main>
 

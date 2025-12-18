@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateMusicSchema } from "@shared/schema";
+import { generateMusicSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
+import { signup, login, getSessionUser, requireAuth } from "./auth";
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const KIE_API_BASE = "https://api.kie.ai/api/v1";
@@ -13,6 +14,91 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { email, password } = insertUserSchema.parse(req.body);
+      const { user, error } = await signup(email, password);
+      
+      if (error) {
+        return res.status(400).json({ error });
+      }
+
+      req.session.userId = user.id;
+      res.json({ user });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      const { user, error } = await login(email, password);
+      
+      if (error || !user) {
+        return res.status(401).json({ error: error || "Invalid credentials" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ user });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json({ user });
+  });
+
+  app.patch("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const updates = updateProfileSchema.parse(req.body);
+      const userId = req.session.userId!;
+
+      if (updates.username) {
+        const existing = await storage.getUserByUsername(updates.username);
+        if (existing && existing.id !== userId) {
+          return res.status(400).json({ error: "Username already taken" });
+        }
+      }
+
+      const user = await storage.updateUserProfile(userId, updates);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Profile update error:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
 
   app.post("/api/generate", async (req, res) => {
     try {
