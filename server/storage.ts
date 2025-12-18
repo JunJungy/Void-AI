@@ -1,38 +1,64 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { type User, type InsertUser, type Track, type InsertTrack, users, tracks } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  createTrack(track: InsertTrack): Promise<Track>;
+  getTrack(id: string): Promise<Track | undefined>;
+  getTrackByTaskId(taskId: string): Promise<Track | undefined>;
+  getAllTracks(): Promise<Track[]>;
+  updateTrack(id: string, updates: Partial<Track>): Promise<Track | undefined>;
+  updateTrackByTaskId(taskId: string, updates: Partial<Track>): Promise<Track | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async createTrack(insertTrack: InsertTrack): Promise<Track> {
+    const [track] = await db.insert(tracks).values(insertTrack).returning();
+    return track;
+  }
+
+  async getTrack(id: string): Promise<Track | undefined> {
+    const [track] = await db.select().from(tracks).where(eq(tracks.id, id));
+    return track || undefined;
+  }
+
+  async getTrackByTaskId(taskId: string): Promise<Track | undefined> {
+    const [track] = await db.select().from(tracks).where(eq(tracks.taskId, taskId));
+    return track || undefined;
+  }
+
+  async getAllTracks(): Promise<Track[]> {
+    return db.select().from(tracks).orderBy(desc(tracks.createdAt));
+  }
+
+  async updateTrack(id: string, updates: Partial<Track>): Promise<Track | undefined> {
+    const [track] = await db.update(tracks).set(updates).where(eq(tracks.id, id)).returning();
+    return track || undefined;
+  }
+
+  async updateTrackByTaskId(taskId: string, updates: Partial<Track>): Promise<Track | undefined> {
+    const [track] = await db.update(tracks).set(updates).where(eq(tracks.taskId, taskId)).returning();
+    return track || undefined;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

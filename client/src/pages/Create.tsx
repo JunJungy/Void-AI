@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { Wand2, Music2, Mic, Settings2, Sparkles, ChevronDown, ChevronUp, Check, Lock, Gem, Crown, Loader2, Play } from "lucide-react";
+import { Wand2, Music2, Sparkles, ChevronDown, Check, Lock, Gem, Crown, Loader2, Play, Pause } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -12,20 +11,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { addTrack, Track } from "@/lib/data";
 import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
 import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
 
 const AI_MODELS = [
-  { id: "v1.5", name: "v1.5", description: "Legacy model. Creates basic, somewhat decent music.", plan: "free" },
-  { id: "v2.5", name: "v2.5", description: "Improved structure and coherence. Better instrument separation.", plan: "ruby" },
-  { id: "v3.5", name: "v3.5", description: "High fidelity audio. Can generate full songs up to 2 minutes.", plan: "ruby" },
-  { id: "v4", name: "v4", description: "Professional quality. Complex arrangements and realistic vocals.", plan: "ruby" },
-  { id: "v4.5", name: "v4.5", description: "Advanced composition. Best for multi-genre fusion.", plan: "pro" },
-  { id: "v5", name: "v5", description: "State of the art. Ultra-realistic production and mastering.", plan: "pro" },
-  { id: "v6", name: "v6", description: "Experimental. Next-gen neural synthesis engine.", plan: "pro" },
+  { id: "V4", name: "v4", apiModel: "V4", description: "Professional quality. Complex arrangements and realistic vocals.", plan: "free" },
+  { id: "V4_5", name: "v4.5", apiModel: "V4_5", description: "Advanced composition. Best for multi-genre fusion. Max 8 min.", plan: "free" },
+  { id: "V4_5PLUS", name: "v4.5+", apiModel: "V4_5PLUS", description: "Richer sound, new ways to create. Max 8 min.", plan: "ruby" },
+  { id: "V5", name: "v5", apiModel: "V5", description: "State of the art. Superior musical expression, faster generation.", plan: "pro" },
 ];
+
+interface GeneratedTrack {
+  id: string;
+  taskId: string;
+  title: string;
+  status: string;
+  audioUrl?: string;
+  imageUrl?: string;
+  duration?: number;
+  style?: string;
+}
+
+const DEFAULT_COVERS = [cover1, cover2, cover3];
 
 export default function Create() {
   const [isInstrumental, setIsInstrumental] = useState(false);
@@ -35,7 +43,10 @@ export default function Create() {
   const [mode, setMode] = useState<"simple" | "custom">("custom");
   const [selectedModel, setSelectedModel] = useState(AI_MODELS[0]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedTrack, setGeneratedTrack] = useState<Track | null>(null);
+  const [generatedTrack, setGeneratedTrack] = useState<GeneratedTrack | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
 
   const handleModelSelect = (model: typeof AI_MODELS[0]) => {
@@ -50,11 +61,83 @@ export default function Create() {
     setSelectedModel(model);
   };
 
-  const handleGenerate = () => {
-    if (!prompt && mode === "custom") {
+  const pollTaskStatus = async (taskId: string) => {
+    setIsPolling(true);
+    const maxAttempts = 60;
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/task/${taskId}`);
+        const data = await response.json();
+
+        if (data.status === "SUCCESS" && data.tracks?.[0]) {
+          const track = data.tracks[0];
+          setGeneratedTrack(prev => prev ? {
+            ...prev,
+            status: "SUCCESS",
+            audioUrl: track.audioUrl,
+            imageUrl: track.imageUrl,
+            duration: Math.round(track.duration),
+          } : null);
+          setIsPolling(false);
+          setIsGenerating(false);
+          toast({
+            title: "Track Generated!",
+            description: "Your new song is ready to play.",
+          });
+          return;
+        }
+
+        if (data.status.includes("FAILED") || data.status.includes("ERROR")) {
+          setIsPolling(false);
+          setIsGenerating(false);
+          toast({
+            title: "Generation Failed",
+            description: data.errorMessage || "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 5000);
+        } else {
+          setIsPolling(false);
+          setIsGenerating(false);
+          toast({
+            title: "Generation Timeout",
+            description: "The generation is taking longer than expected. Please check your library later.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Polling error:", error);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 5000);
+        }
+      }
+    };
+
+    poll();
+  };
+
+  const handleGenerate = async () => {
+    if (!prompt && mode === "custom" && !lyrics) {
       toast({
-        title: "Prompt required",
-        description: "Please enter a style description for your song.",
+        title: "Input required",
+        description: "Please enter a style description or lyrics for your song.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!prompt && mode === "simple") {
+      toast({
+        title: "Description required",
+        description: "Please describe the song you want to create.",
         variant: "destructive",
       });
       return;
@@ -63,28 +146,88 @@ export default function Create() {
     setIsGenerating(true);
     setGeneratedTrack(null);
 
-    // Simulate generation delay
-    setTimeout(() => {
-      const newTrack: Track = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: title || (mode === "simple" ? "Generated Song" : prompt.split(",")[0] || "Untitled Track"),
-        artist: "User",
-        cover: [cover1, cover2, cover3][Math.floor(Math.random() * 3)],
-        duration: "2:15",
-        plays: "0",
-        tags: prompt.split(",").map(s => s.trim()).filter(Boolean).slice(0, 3)
+    try {
+      const requestBody = {
+        prompt: prompt || "upbeat electronic music",
+        style: prompt,
+        title: title || prompt.split(",")[0] || "Untitled Track",
+        lyrics: mode === "custom" ? lyrics : undefined,
+        model: selectedModel.apiModel,
+        instrumental: isInstrumental || (mode === "custom" && !lyrics),
+        customMode: mode === "custom",
       };
 
-      addTrack(newTrack);
-      setGeneratedTrack(newTrack);
-      setIsGenerating(false);
-      
-      toast({
-        title: "Track Generated!",
-        description: "Your new song is ready to play.",
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       });
-    }, 3000);
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to start generation");
+      }
+
+      const newTrack: GeneratedTrack = {
+        id: data.trackId,
+        taskId: data.taskId,
+        title: title || prompt.split(",")[0] || "Untitled Track",
+        status: "PENDING",
+        style: prompt,
+      };
+
+      setGeneratedTrack(newTrack);
+      toast({
+        title: "Generation Started",
+        description: "Your track is being created. This may take a minute or two...",
+      });
+
+      pollTaskStatus(data.taskId);
+    } catch (error) {
+      console.error("Generation error:", error);
+      setIsGenerating(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start generation. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayback = () => {
+    if (!generatedTrack?.audioUrl) return;
+    
+    if (!audioRef.current) {
+      audioRef.current = new Audio(generatedTrack.audioUrl);
+      audioRef.current.onended = () => setIsPlaying(false);
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -93,7 +236,7 @@ export default function Create() {
       <main className="lg:pl-64 pb-48 pt-6 px-4 md:px-12">
         <div className="max-w-md mx-auto space-y-6">
           <div className="flex items-center justify-between mb-2">
-             <h1 className="text-xl font-bold">Create</h1>
+             <h1 className="text-xl font-bold" data-testid="text-page-title">Create</h1>
              <div className="p-2 rounded-full bg-secondary hover:bg-secondary/80 cursor-pointer">
                <ChevronDown className="w-5 h-5" />
              </div>
@@ -103,12 +246,13 @@ export default function Create() {
           <div className="flex items-center justify-between gap-4">
              <div className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2">
                <Music2 className="w-4 h-4" />
-               <span>55</span>
+               <span data-testid="text-credits">55</span>
              </div>
 
              <div className="flex bg-secondary/50 rounded-full p-1 border border-white/5">
                 <button 
                   onClick={() => setMode("simple")}
+                  data-testid="button-mode-simple"
                   className={cn(
                     "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
                     mode === "simple" ? "bg-secondary text-white shadow-sm" : "text-muted-foreground hover:text-white"
@@ -118,6 +262,7 @@ export default function Create() {
                 </button>
                 <button 
                   onClick={() => setMode("custom")}
+                  data-testid="button-mode-custom"
                   className={cn(
                     "px-4 py-1.5 rounded-full text-sm font-medium transition-all",
                     mode === "custom" ? "bg-secondary text-white shadow-sm" : "text-muted-foreground hover:text-white"
@@ -129,7 +274,10 @@ export default function Create() {
 
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2 hover:bg-secondary/80 transition-colors">
+                <button 
+                  data-testid="button-model-selector"
+                  className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2 hover:bg-secondary/80 transition-colors"
+                >
                   <span>{selectedModel.name}</span>
                   <ChevronDown className="w-3 h-3" />
                 </button>
@@ -139,6 +287,7 @@ export default function Create() {
                   <DropdownMenuItem
                     key={model.id}
                     onClick={() => handleModelSelect(model)}
+                    data-testid={`button-model-${model.id}`}
                     className={cn(
                       "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50 mb-1 relative overflow-hidden",
                       selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30",
@@ -188,6 +337,7 @@ export default function Create() {
                 <textarea 
                   value={lyrics}
                   onChange={(e) => setLyrics(e.target.value)}
+                  data-testid="input-lyrics"
                   placeholder="Write some lyrics or a prompt — or leave blank for instrumental"
                   className="w-full flex-1 bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base leading-relaxed"
                 />
@@ -202,6 +352,7 @@ export default function Create() {
                 <textarea 
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
+                  data-testid="input-style"
                   placeholder="dungeon, turkish classical, bongo, frustration, electric"
                   className="w-full bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base h-20 mb-4"
                 />
@@ -216,6 +367,7 @@ export default function Create() {
                     <button 
                       key={tag}
                       onClick={() => setPrompt(prev => prev ? `${prev}, ${tag}` : tag)}
+                      data-testid={`button-tag-${tag.replace(/\s/g, '-')}`}
                       className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm whitespace-nowrap hover:bg-white/10 transition-colors"
                     >
                       + {tag}
@@ -231,6 +383,7 @@ export default function Create() {
                    type="text" 
                    value={title}
                    onChange={(e) => setTitle(e.target.value)}
+                   data-testid="input-title"
                    placeholder="Song Title (Optional)"
                    className="flex-1 bg-transparent border-none focus:outline-none text-sm"
                  />
@@ -250,6 +403,7 @@ export default function Create() {
                 <textarea 
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
+                  data-testid="input-description"
                   placeholder="A song about..."
                   className="w-full bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base h-32"
                 />
@@ -264,7 +418,11 @@ export default function Create() {
                    </div>
                    <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Instrumental</span>
-                      <Switch checked={isInstrumental} onCheckedChange={setIsInstrumental} />
+                      <Switch 
+                        checked={isInstrumental} 
+                        onCheckedChange={setIsInstrumental} 
+                        data-testid="switch-instrumental"
+                      />
                    </div>
                 </div>
              </div>
@@ -275,27 +433,57 @@ export default function Create() {
             <div className="bg-card border border-primary/20 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-4">
               <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                Just Created
+                {generatedTrack.status === "SUCCESS" ? "Just Created" : "Generating..."}
               </h3>
               <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-lg overflow-hidden group cursor-pointer">
-                  <img src={generatedTrack.cover} alt={generatedTrack.title} className="w-full h-full object-cover" />
+                <div 
+                  className="relative w-16 h-16 rounded-lg overflow-hidden group cursor-pointer"
+                  onClick={togglePlayback}
+                  data-testid="button-play-preview"
+                >
+                  <img 
+                    src={generatedTrack.imageUrl || DEFAULT_COVERS[Math.floor(Math.random() * 3)]} 
+                    alt={generatedTrack.title} 
+                    className="w-full h-full object-cover" 
+                  />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Play className="w-6 h-6 fill-white text-white" />
+                    {generatedTrack.status === "SUCCESS" ? (
+                      isPlaying ? (
+                        <Pause className="w-6 h-6 fill-white text-white" />
+                      ) : (
+                        <Play className="w-6 h-6 fill-white text-white" />
+                      )
+                    ) : (
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    )}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold truncate">{generatedTrack.title}</h4>
-                  <p className="text-xs text-muted-foreground truncate">{generatedTrack.artist}</p>
-                  <div className="flex gap-1 mt-1">
-                    {generatedTrack.tags.map(tag => (
-                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  <h4 className="font-bold truncate" data-testid="text-generated-title">{generatedTrack.title}</h4>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {generatedTrack.status === "SUCCESS" 
+                      ? formatDuration(generatedTrack.duration)
+                      : "Creating your track..."
+                    }
+                  </p>
+                  {generatedTrack.style && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {generatedTrack.style.split(",").slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/50 text-muted-foreground">
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+              
+              {isPolling && (
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>This usually takes 1-2 minutes...</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -305,8 +493,9 @@ export default function Create() {
               <button 
                 onClick={handleGenerate}
                 disabled={isGenerating}
+                data-testid="button-create"
                 className={cn(
-                  "w-full py-4 bg-secondary hover:bg-secondary/80 text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 text-lg shadow-lg shadow-black/50",
+                  "w-full py-4 bg-primary hover:bg-primary/80 text-white font-bold rounded-full transition-all flex items-center justify-center gap-2 text-lg shadow-lg shadow-primary/30",
                   isGenerating && "opacity-80 cursor-wait"
                 )}
               >
@@ -317,8 +506,8 @@ export default function Create() {
                   </>
                 ) : (
                   <>
-                    <Wand2 className="w-5 h-5 opacity-50" />
-                    <span className="opacity-50">Create</span>
+                    <Wand2 className="w-5 h-5" />
+                    <span>Create</span>
                   </>
                 )}
               </button>
