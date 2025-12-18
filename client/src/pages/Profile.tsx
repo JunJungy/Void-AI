@@ -65,9 +65,9 @@ export default function Profile() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [editUsername, setEditUsername] = useState("");
+  const [editDisplayName, setEditDisplayName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -110,7 +110,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      setEditUsername(user.username);
+      setEditDisplayName(user.displayName || user.username);
       setEditBio(user.bio || "");
     }
   }, [user]);
@@ -145,21 +145,21 @@ export default function Profile() {
     }
   };
 
-  const handleSaveUsername = async () => {
-    if (!editUsername.trim() || editUsername.length < 3) {
-      toast({ title: "Error", description: "Username must be at least 3 characters", variant: "destructive" });
+  const handleSaveDisplayName = async () => {
+    if (!editDisplayName.trim()) {
+      toast({ title: "Error", description: "Display name cannot be empty", variant: "destructive" });
       return;
     }
     
     setIsSaving(true);
-    const { success, error } = await updateProfile({ username: editUsername.trim() });
+    const { success, error } = await updateProfile({ displayName: editDisplayName.trim() });
     setIsSaving(false);
     
     if (success) {
-      setIsEditingUsername(false);
-      toast({ title: "Username Updated", description: "Your changes have been saved." });
+      setIsEditingDisplayName(false);
+      toast({ title: "Name Updated", description: "Your changes have been saved." });
     } else {
-      toast({ title: "Error", description: error || "Failed to update username", variant: "destructive" });
+      toast({ title: "Error", description: error || "Failed to update name", variant: "destructive" });
     }
   };
 
@@ -224,7 +224,7 @@ export default function Profile() {
           <div className="flex flex-col items-center text-center py-6">
             <div className="relative w-24 h-24 mb-4">
               <img
-                src={user?.avatarUrl || "https://cdn-icons-png.flaticon.com/512/2977/2977485.png"}
+                src={user?.avatarUrl || `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="#8b5cf6"/><ellipse cx="30" cy="25" rx="15" ry="15" fill="#1a1a1a"/><ellipse cx="70" cy="25" rx="15" ry="15" fill="#1a1a1a"/><circle cx="50" cy="55" r="30" fill="white"/><ellipse cx="38" cy="50" rx="10" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="50" rx="10" ry="12" fill="#1a1a1a"/><circle cx="38" cy="48" r="4" fill="white"/><circle cx="62" cy="48" r="4" fill="white"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#1a1a1a"/><path d="M44 72 Q50 78 56 72" stroke="#1a1a1a" stroke-width="2" fill="none"/></svg>')}`}
                 alt="Profile"
                 className="w-full h-full rounded-full object-cover border-4 border-primary/30"
                 data-testid="img-avatar"
@@ -236,28 +236,28 @@ export default function Profile() {
               )}
             </div>
             
-            {/* Display Name / Username */}
-            {isEditingUsername ? (
+            {/* Display Name */}
+            {isEditingDisplayName ? (
               <div className="flex items-center gap-2 mb-2">
                 <Input
-                  value={editUsername}
-                  onChange={(e) => setEditUsername(e.target.value)}
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
                   className="w-48 bg-card border-white/10 text-center"
-                  data-testid="input-username"
+                  data-testid="input-display-name"
                 />
-                <button onClick={handleSaveUsername} disabled={isSaving} className="p-1 text-green-400 hover:text-green-300">
+                <button onClick={handleSaveDisplayName} disabled={isSaving} className="p-1 text-green-400 hover:text-green-300">
                   <Check className="w-5 h-5" />
                 </button>
-                <button onClick={() => { setIsEditingUsername(false); setEditUsername(user?.username || ""); }} className="p-1 text-red-400 hover:text-red-300">
+                <button onClick={() => { setIsEditingDisplayName(false); setEditDisplayName(user?.displayName || user?.username || ""); }} className="p-1 text-red-400 hover:text-red-300">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold" data-testid="text-username">
+                <h1 className="text-2xl font-bold" data-testid="text-display-name">
                   {user?.displayName || user?.username}
                 </h1>
-                <button onClick={() => setIsEditingUsername(true)} className="p-1 text-muted-foreground hover:text-white">
+                <button onClick={() => setIsEditingDisplayName(true)} className="p-1 text-muted-foreground hover:text-white">
                   <Edit2 className="w-4 h-4" />
                 </button>
               </div>

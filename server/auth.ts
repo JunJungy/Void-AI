@@ -3,7 +3,22 @@ import { storage } from "./storage";
 import { insertUserSchema, loginSchema, type User } from "@shared/schema";
 import type { Request, Response, NextFunction } from "express";
 
-const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/2977/2977485.png";
+const PANDA_COLORS = [
+  "#8b5cf6", // purple
+  "#ec4899", // pink
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#06b6d4", // cyan
+  "#f97316", // orange
+];
+
+function generatePandaAvatar(): string {
+  const color = PANDA_COLORS[Math.floor(Math.random() * PANDA_COLORS.length)];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${color}"/><ellipse cx="30" cy="25" rx="15" ry="15" fill="#1a1a1a"/><ellipse cx="70" cy="25" rx="15" ry="15" fill="#1a1a1a"/><circle cx="50" cy="55" r="30" fill="white"/><ellipse cx="38" cy="50" rx="10" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="50" rx="10" ry="12" fill="#1a1a1a"/><circle cx="38" cy="48" r="4" fill="white"/><circle cx="62" cy="48" r="4" fill="white"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#1a1a1a"/><path d="M44 72 Q50 78 56 72" stroke="#1a1a1a" stroke-width="2" fill="none"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 function generateUsername(): string {
   const adjectives = ["void", "cosmic", "stellar", "neon", "cyber", "digital"];
@@ -29,7 +44,7 @@ export async function signup(email: string, password: string): Promise<{ user: O
       username,
       password: hashedPassword,
       displayName: username,
-      avatarUrl: DEFAULT_AVATAR,
+      avatarUrl: generatePandaAvatar(),
       planType: "free",
       isOwner: false,
     });
@@ -48,6 +63,10 @@ export async function login(email: string, password: string): Promise<{ user: Om
   const user = await storage.getUserByEmail(email);
   if (!user) {
     return { user: null, error: "Invalid email or password" };
+  }
+
+  if (!user.password) {
+    return { user: null, error: "Please login with Discord" };
   }
 
   const isValid = await bcrypt.compare(password, user.password);
@@ -73,7 +92,7 @@ export async function createOwnerAccount(email: string, password: string, displa
     username: "owner",
     password: hashedPassword,
     displayName,
-    avatarUrl: DEFAULT_AVATAR,
+    avatarUrl: generatePandaAvatar(),
     planType: "diamond",
     isOwner: true,
   });

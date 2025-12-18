@@ -1,6 +1,17 @@
 import { storage } from "./storage";
 
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
+
+const PANDA_COLORS = [
+  "#8b5cf6", "#ec4899", "#3b82f6", "#10b981",
+  "#f59e0b", "#ef4444", "#06b6d4", "#f97316",
+];
+
+function generatePandaAvatar(): string {
+  const color = PANDA_COLORS[Math.floor(Math.random() * PANDA_COLORS.length)];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${color}"/><ellipse cx="30" cy="25" rx="15" ry="15" fill="#1a1a1a"/><ellipse cx="70" cy="25" rx="15" ry="15" fill="#1a1a1a"/><circle cx="50" cy="55" r="30" fill="white"/><ellipse cx="38" cy="50" rx="10" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="50" rx="10" ry="12" fill="#1a1a1a"/><circle cx="38" cy="48" r="4" fill="white"/><circle cx="62" cy="48" r="4" fill="white"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#1a1a1a"/><path d="M44 72 Q50 78 56 72" stroke="#1a1a1a" stroke-width="2" fill="none"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 const DISCORD_CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
 
 export function getDiscordAuthUrl(redirectUri: string, state: string): string {
@@ -75,7 +86,7 @@ export async function getDiscordUser(accessToken: string): Promise<{
 
 export function getDiscordAvatarUrl(userId: string, avatarHash: string | null): string {
   if (!avatarHash) {
-    return "https://cdn-icons-png.flaticon.com/512/2977/2977485.png";
+    return generatePandaAvatar();
   }
   return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.png`;
 }
