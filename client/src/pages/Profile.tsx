@@ -263,14 +263,7 @@ export default function Profile() {
               </div>
             )}
             
-            {isEditingUsername ? null : (
-              <button 
-                onClick={() => setIsEditingUsername(true)}
-                className="text-sm text-muted-foreground hover:text-white transition-colors"
-              >
-                @{user?.username}
-              </button>
-            )}
+            <p className="text-sm text-muted-foreground">@{user?.username}</p>
             <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
             
             {/* Bio */}
