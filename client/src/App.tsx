@@ -12,6 +12,8 @@ import Create from "@/pages/Create";
 import Library from "@/pages/Library";
 import Explore from "@/pages/Explore";
 import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+import Billing from "@/pages/Billing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 
@@ -23,6 +25,8 @@ function Router() {
       <Route path="/library" component={Library} />
       <Route path="/explore" component={Explore} />
       <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/billing" component={Billing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route component={NotFound} />

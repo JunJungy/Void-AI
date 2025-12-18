@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/authContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 function generatePandaSvg(color: string): string {
@@ -444,16 +444,26 @@ export default function Profile() {
 
           {/* Menu Items */}
           <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
-            <button className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5">
-              <Settings className="w-5 h-5 text-muted-foreground" />
-              <span className="flex-1 text-left">Settings</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <button className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5">
-              <CreditCard className="w-5 h-5 text-muted-foreground" />
-              <span className="flex-1 text-left">Billing</span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
+            <Link href="/settings">
+              <a 
+                className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
+                data-testid="link-settings"
+              >
+                <Settings className="w-5 h-5 text-muted-foreground" />
+                <span className="flex-1 text-left">Settings</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </a>
+            </Link>
+            <Link href="/billing">
+              <a 
+                className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
+                data-testid="link-billing"
+              >
+                <CreditCard className="w-5 h-5 text-muted-foreground" />
+                <span className="flex-1 text-left">Billing</span>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </a>
+            </Link>
             <button 
               onClick={logout}
               className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors text-red-400"

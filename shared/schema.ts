@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   credits: integer("credits").default(10),
   isOwner: boolean("is_owner").default(false),
   discordId: text("discord_id").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -39,8 +40,9 @@ export const signupSchema = z.object({
 export const updateProfileSchema = z.object({
   username: z.string().min(3).max(30).optional(),
   displayName: z.string().max(50).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().optional(),
   bio: z.string().max(300).optional(),
+  stripeCustomerId: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

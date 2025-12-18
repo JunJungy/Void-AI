@@ -369,5 +369,36 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/billing/portal", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email, {
+          userId: user.id,
+          username: user.username,
+        });
+        customerId = customer.id;
+        await storage.updateUserProfile(user.id, { stripeCustomerId: customerId });
+      }
+
+      const portalSession = await stripeService.createCustomerPortalSession(
+        customerId,
+        `${baseUrl}/billing`
+      );
+
+      res.json({ url: portalSession.url });
+    } catch (error) {
+      console.error("Billing portal error:", error);
+      res.status(500).json({ error: "Failed to create billing portal session" });
+    }
+  });
+
   return httpServer;
 }

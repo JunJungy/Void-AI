@@ -2,9 +2,16 @@ import { Link, useLocation } from "wouter";
 import { Home, PlusCircle, Library, Compass, Music, User } from "lucide-react";
 import logo from "@assets/generated_images/void_ai_minimalist_logo_symbol.png";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/authContext";
+
+function generatePandaSvg(color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${color}"/><ellipse cx="30" cy="25" rx="15" ry="15" fill="#1a1a1a"/><ellipse cx="70" cy="25" rx="15" ry="15" fill="#1a1a1a"/><circle cx="50" cy="55" r="30" fill="white"/><ellipse cx="38" cy="50" rx="10" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="50" rx="10" ry="12" fill="#1a1a1a"/><circle cx="38" cy="48" r="4" fill="white"/><circle cx="62" cy="48" r="4" fill="white"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#1a1a1a"/><path d="M44 72 Q50 78 56 72" stroke="#1a1a1a" stroke-width="2" fill="none"/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   const navItems = [
     { icon: Home, label: "Home", href: "/" },
@@ -97,10 +104,12 @@ export function Sidebar() {
 
         <Link href="/profile">
           <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/profile" ? "text-white" : "text-muted-foreground")}>
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-purple-400 p-[1px]">
-               <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
-                 <User className="w-3 h-3 text-white" />
-               </div>
+            <div className="w-6 h-6 rounded-full overflow-hidden border border-primary/30">
+              <img 
+                src={user?.avatarUrl || generatePandaSvg("#8b5cf6")} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
             </div>
             <span className="text-[10px] font-medium">Me</span>
           </a>
