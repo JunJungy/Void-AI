@@ -6,6 +6,8 @@ import { z } from "zod";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
 import { signup, login, getSessionUser, requireAuth } from "./auth";
+import { getDiscordAuthUrl, exchangeCodeForToken, getDiscordUser, findOrCreateDiscordUser, isDiscordConfigured } from "./discord";
+import crypto from "crypto";
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const KIE_API_BASE = "https://api.kie.ai/api/v1";
@@ -70,6 +72,60 @@ export async function registerRoutes(
       return res.status(401).json({ error: "Not authenticated" });
     }
     res.json({ user });
+  });
+
+  app.get("/api/auth/discord", (req, res) => {
+    if (!isDiscordConfigured()) {
+      return res.status(503).json({ error: "Discord login not configured" });
+    }
+
+    const state = crypto.randomBytes(16).toString("hex");
+    req.session.discordState = state;
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const redirectUri = `${baseUrl}/api/auth/discord/callback`;
+    
+    const authUrl = getDiscordAuthUrl(redirectUri, state);
+    res.json({ url: authUrl });
+  });
+
+  app.get("/api/auth/discord/callback", async (req, res) => {
+    const { code, state } = req.query;
+    
+    if (!code || typeof code !== "string") {
+      return res.redirect("/login?error=no_code");
+    }
+
+    if (state !== req.session.discordState) {
+      return res.redirect("/login?error=invalid_state");
+    }
+
+    try {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const redirectUri = `${baseUrl}/api/auth/discord/callback`;
+      
+      const tokens = await exchangeCodeForToken(code, redirectUri);
+      const discordUser = await getDiscordUser(tokens.access_token);
+      
+      const { id: odId, isNew } = await findOrCreateDiscordUser({
+        id: discordUser.id,
+        username: discordUser.username,
+        email: discordUser.email,
+        avatar: discordUser.avatar,
+      });
+
+      req.session.userId = odId;
+      delete req.session.discordState;
+
+      res.redirect(isNew ? "/profile?welcome=true" : "/");
+    } catch (error) {
+      console.error("Discord callback error:", error);
+      res.redirect("/login?error=discord_failed");
+    }
+  });
+
+  app.get("/api/auth/discord/status", (_req, res) => {
+    res.json({ configured: isDiscordConfigured() });
   });
 
   app.patch("/api/profile", requireAuth, async (req, res) => {

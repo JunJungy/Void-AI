@@ -7,12 +7,14 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url").default("https://cdn-icons-png.flaticon.com/512/2977/2977485.png"),
   bio: text("bio"),
   planType: text("plan_type").default("free"),
+  credits: integer("credits").default(10),
   isOwner: boolean("is_owner").default(false),
+  discordId: text("discord_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

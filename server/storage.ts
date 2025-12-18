@@ -6,9 +6,13 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByDiscordId(discordId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createDiscordUser(user: { email: string; username: string; displayName: string; avatarUrl: string; discordId: string }): Promise<User>;
+  linkDiscordToUser(userId: string, discordId: string): Promise<void>;
   updateUserProfile(id: string, updates: UpdateProfile): Promise<User | undefined>;
   updateUserPlan(id: string, planType: string): Promise<User | undefined>;
+  updateUserCredits(id: string, credits: number): Promise<User | undefined>;
   
   createTrack(track: InsertTrack): Promise<Track>;
   getTrack(id: string): Promise<Track | undefined>;
@@ -48,6 +52,33 @@ export class DatabaseStorage implements IStorage {
   async updateUserPlan(id: string, planType: string): Promise<User | undefined> {
     const [user] = await db.update(users).set({ planType }).where(eq(users.id, id)).returning();
     return user || undefined;
+  }
+
+  async updateUserCredits(id: string, credits: number): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ credits }).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  async getUserByDiscordId(discordId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.discordId, discordId));
+    return user || undefined;
+  }
+
+  async createDiscordUser(userData: { email: string; username: string; displayName: string; avatarUrl: string; discordId: string }): Promise<User> {
+    const [user] = await db.insert(users).values({
+      email: userData.email,
+      username: userData.username,
+      displayName: userData.displayName,
+      avatarUrl: userData.avatarUrl,
+      discordId: userData.discordId,
+      planType: "free",
+      credits: 10,
+    }).returning();
+    return user;
+  }
+
+  async linkDiscordToUser(userId: string, discordId: string): Promise<void> {
+    await db.update(users).set({ discordId }).where(eq(users.id, userId));
   }
 
   async createTrack(insertTrack: InsertTrack): Promise<Track> {

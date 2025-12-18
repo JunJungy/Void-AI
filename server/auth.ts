@@ -85,6 +85,7 @@ export async function createOwnerAccount(email: string, password: string, displa
 declare module "express-session" {
   interface SessionData {
     userId: string;
+    discordState?: string;
   }
 }
 

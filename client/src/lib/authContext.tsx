@@ -9,7 +9,9 @@ interface User {
   avatarUrl: string | null;
   bio: string | null;
   planType: string;
+  credits: number;
   isOwner: boolean;
+  discordId: string | null;
   createdAt: string;
 }
 

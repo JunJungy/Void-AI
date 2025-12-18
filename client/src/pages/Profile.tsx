@@ -304,7 +304,9 @@ export default function Profile() {
             <div className="flex items-center gap-2 p-3 bg-black/20 rounded-xl">
               <Music2 className="w-5 h-5 text-primary" />
               <div className="flex-1">
-                <p className="text-sm font-medium">55 Credits</p>
+                <p className="text-sm font-medium" data-testid="text-credits">
+                  {user?.isOwner ? "Unlimited" : `${user?.credits ?? 0} Credits`}
+                </p>
                 <p className="text-xs text-muted-foreground">Available for generation</p>
               </div>
             </div>
