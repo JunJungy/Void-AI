@@ -3,8 +3,8 @@ import { Player } from "@/components/Player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, Loader2, Music2 } from "lucide-react";
-import { useState, useRef } from "react";
 import { Link } from "wouter";
+import { usePlayer } from "@/lib/playerContext";
 import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
 import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
@@ -40,44 +40,42 @@ function formatDate(dateString: string) {
 }
 
 function TrackRow({ track, index }: { track: Track; index: number }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { currentTrack, isPlaying, playTrack } = usePlayer();
+  
+  const isCurrentTrack = currentTrack?.id === track.id;
+  const isThisPlaying = isCurrentTrack && isPlaying;
 
-  const togglePlayback = () => {
+  const handlePlay = () => {
     if (!track.audioUrl) return;
-    
-    if (!audioRef.current) {
-      audioRef.current = new Audio(track.audioUrl);
-      audioRef.current.onended = () => setIsPlaying(false);
-    }
-
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
+    playTrack({
+      id: track.id,
+      title: track.title,
+      style: track.style || track.prompt,
+      audioUrl: track.audioUrl,
+      imageUrl: track.imageUrl,
+      duration: track.duration,
+    });
   };
 
   const coverImage = track.imageUrl || DEFAULT_COVERS[index % 3];
 
   return (
     <div 
-      className="flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/30 transition-colors group"
+      className={`flex items-center gap-4 p-3 rounded-xl hover:bg-secondary/30 transition-colors group ${isCurrentTrack ? 'bg-secondary/20' : ''}`}
       data-testid={`track-row-${track.id}`}
     >
       <div 
         className="relative w-14 h-14 rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
-        onClick={togglePlayback}
+        onClick={handlePlay}
       >
         <img 
           src={coverImage} 
           alt={track.title} 
           className="w-full h-full object-cover" 
         />
-        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center ${isThisPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
           {track.status === "SUCCESS" && track.audioUrl ? (
-            isPlaying ? (
+            isThisPlaying ? (
               <Pause className="w-5 h-5 fill-white text-white" />
             ) : (
               <Play className="w-5 h-5 fill-white text-white" />
@@ -91,7 +89,7 @@ function TrackRow({ track, index }: { track: Track; index: number }) {
       </div>
       
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm truncate" data-testid={`text-track-title-${track.id}`}>
+        <h4 className={`font-medium text-sm truncate ${isCurrentTrack ? 'text-primary' : ''}`} data-testid={`text-track-title-${track.id}`}>
           {track.title}
         </h4>
         <p className="text-xs text-muted-foreground truncate">
