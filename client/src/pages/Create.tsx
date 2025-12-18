@@ -17,11 +17,10 @@ import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
 
 const AI_MODELS = [
-  { id: "V3_5", name: "v1.5", apiModel: "V3_5", description: "Basic quality. Good for simple melodies and experimenting.", plan: "free" },
-  { id: "V4", name: "v4", apiModel: "V4", description: "Better quality. Improved vocals and instrument separation.", plan: "ruby" },
+  { id: "V4", name: "v4", apiModel: "V4", description: "Great quality. Clear vocals and good instrument separation.", plan: "free" },
   { id: "V4_5", name: "v4.5", apiModel: "V4_5", description: "High quality. Complex arrangements and realistic vocals.", plan: "ruby" },
-  { id: "V5", name: "v5", apiModel: "V5", description: "Premium quality. Best for professional-sounding tracks.", plan: "pro" },
-  { id: "V6", name: "v6", apiModel: "V4_5", description: "Ultimate quality. State-of-the-art AI with studio-grade output.", plan: "pro" },
+  { id: "V4_5PLUS", name: "v4.5+", apiModel: "V4_5PLUS", description: "Enhanced quality. Premium vocals with studio effects.", plan: "ruby" },
+  { id: "V5", name: "v5", apiModel: "V5", description: "Best quality. State-of-the-art AI for professional tracks.", plan: "pro" },
 ];
 
 const PLAN_NAMES: Record<PlanType, string> = {
