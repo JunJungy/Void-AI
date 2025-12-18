@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateMusicSchema, insertUserSchema, loginSchema, updateProfileSchema } from "@shared/schema";
+import { generateMusicSchema, signupSchema, loginSchema, updateProfileSchema } from "@shared/schema";
 import { z } from "zod";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
@@ -17,7 +17,7 @@ export async function registerRoutes(
 
   app.post("/api/auth/signup", async (req, res) => {
     try {
-      const { email, password } = insertUserSchema.parse(req.body);
+      const { email, password } = signupSchema.parse(req.body);
       const { user, error } = await signup(email, password);
       
       if (error) {

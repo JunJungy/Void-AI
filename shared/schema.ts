@@ -29,6 +29,11 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const signupSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export const updateProfileSchema = z.object({
   username: z.string().min(3).max(30).optional(),
   displayName: z.string().max(50).optional(),
