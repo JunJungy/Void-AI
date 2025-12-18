@@ -95,14 +95,16 @@ export function Sidebar() {
           </a>
         </Link>
 
-        <button className="flex flex-col items-center gap-1 p-2 min-w-[64px] text-muted-foreground">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-purple-400 p-[1px]">
-             <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
-               <User className="w-3 h-3 text-white" />
-             </div>
-          </div>
-          <span className="text-[10px] font-medium">Me</span>
-        </button>
+        <Link href="/profile">
+          <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/profile" ? "text-white" : "text-muted-foreground")}>
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-purple-400 p-[1px]">
+               <div className="w-full h-full rounded-full bg-black flex items-center justify-center">
+                 <User className="w-3 h-3 text-white" />
+               </div>
+            </div>
+            <span className="text-[10px] font-medium">Me</span>
+          </a>
+        </Link>
       </div>
     </div>
   );

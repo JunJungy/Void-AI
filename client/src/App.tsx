@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import Create from "@/pages/Create";
 import Library from "@/pages/Library";
 import Explore from "@/pages/Explore";
+import Profile from "@/pages/Profile";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/create" component={Create} />
       <Route path="/library" component={Library} />
       <Route path="/explore" component={Explore} />
+      <Route path="/profile" component={Profile} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
