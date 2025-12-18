@@ -115,6 +115,12 @@ export default function Profile() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      setLocation("/login");
+    }
+  }, [authLoading, isAuthenticated, setLocation]);
+
   const handleCheckout = async (priceId: string, planType: string) => {
     try {
       const response = await fetch('/api/checkout', {
@@ -201,8 +207,11 @@ export default function Profile() {
   }
 
   if (!isAuthenticated) {
-    setLocation("/login");
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
