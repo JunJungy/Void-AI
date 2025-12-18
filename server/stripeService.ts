@@ -98,6 +98,24 @@ export class StripeService {
     );
     return result.rows[0] || null;
   }
+
+  async getCustomerPaymentMethods(customerId: string) {
+    const stripe = await getUncachableStripeClient();
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customerId,
+      type: 'card',
+    });
+    return paymentMethods.data;
+  }
+
+  async getCustomerSubscriptions(customerId: string) {
+    const stripe = await getUncachableStripeClient();
+    const subscriptions = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'active',
+    });
+    return subscriptions.data;
+  }
 }
 
 export const stripeService = new StripeService();

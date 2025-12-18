@@ -400,5 +400,48 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/billing/summary", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.stripeCustomerId) {
+        return res.json({ 
+          hasSubscription: false,
+          paymentMethod: null,
+          subscription: null
+        });
+      }
+
+      const [paymentMethods, subscriptions] = await Promise.all([
+        stripeService.getCustomerPaymentMethods(user.stripeCustomerId),
+        stripeService.getCustomerSubscriptions(user.stripeCustomerId),
+      ]);
+
+      const activeSubscription = subscriptions[0] as any || null;
+      const defaultPaymentMethod = paymentMethods[0] || null;
+
+      res.json({
+        hasSubscription: !!activeSubscription,
+        paymentMethod: defaultPaymentMethod ? {
+          brand: defaultPaymentMethod.card?.brand,
+          last4: defaultPaymentMethod.card?.last4,
+          expMonth: defaultPaymentMethod.card?.exp_month,
+          expYear: defaultPaymentMethod.card?.exp_year,
+        } : null,
+        subscription: activeSubscription ? {
+          status: activeSubscription.status,
+          currentPeriodEnd: activeSubscription.current_period_end,
+          cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
+        } : null,
+      });
+    } catch (error) {
+      console.error("Billing summary error:", error);
+      res.status(500).json({ error: "Failed to get billing summary" });
+    }
+  });
+
   return httpServer;
 }

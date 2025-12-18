@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; bgColor: string }> = {
   free: { name: "Free", color: "text-muted-foreground", icon: null, bgColor: "bg-secondary/20" },
@@ -16,11 +17,43 @@ const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; bgCo
   diamond: { name: "Diamond", color: "text-cyan-400", icon: Diamond, bgColor: "bg-cyan-500/10" },
 };
 
+const CARD_BRANDS: Record<string, { bg: string; text: string }> = {
+  visa: { bg: "bg-gradient-to-r from-blue-600 to-blue-400", text: "VISA" },
+  mastercard: { bg: "bg-gradient-to-r from-red-500 to-orange-400", text: "MC" },
+  amex: { bg: "bg-gradient-to-r from-blue-400 to-cyan-300", text: "AMEX" },
+  discover: { bg: "bg-gradient-to-r from-orange-500 to-yellow-400", text: "DISC" },
+  default: { bg: "bg-gradient-to-r from-gray-600 to-gray-400", text: "CARD" },
+};
+
+interface BillingSummary {
+  hasSubscription: boolean;
+  paymentMethod: {
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+  } | null;
+  subscription: {
+    status: string;
+    currentPeriodEnd: number;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+}
+
 export default function Billing() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { currentPlan } = useSubscription();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  const { data: billingSummary, isLoading: billingLoading } = useQuery<BillingSummary>({
+    queryKey: ["/api/billing/summary"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/billing/summary");
+      return response.json();
+    },
+    enabled: isAuthenticated,
+  });
 
   const planType = (user?.planType || "free") as PlanType;
   const planInfo = PLAN_INFO[planType] || PLAN_INFO.free;
@@ -81,6 +114,16 @@ export default function Billing() {
     }
   };
 
+  const getCardBrand = (brand: string | undefined) => {
+    if (!brand) return CARD_BRANDS.default;
+    return CARD_BRANDS[brand.toLowerCase()] || CARD_BRANDS.default;
+  };
+
+  const formatRenewalDate = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
@@ -113,13 +156,23 @@ export default function Billing() {
             
             <div className="flex items-center gap-2 text-sm text-green-400 mb-4">
               <CheckCircle className="w-4 h-4" />
-              <span>{planType === 'free' ? 'Free tier active' : 'Active subscription'}</span>
+              <span>
+                {billingSummary?.subscription?.cancelAtPeriodEnd 
+                  ? 'Cancels at period end' 
+                  : planType === 'free' 
+                    ? 'Free tier active' 
+                    : 'Active subscription'}
+              </span>
             </div>
 
-            {planType !== 'free' && (
+            {billingSummary?.subscription && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>Renews monthly</span>
+                <span>
+                  {billingSummary.subscription.cancelAtPeriodEnd 
+                    ? `Access until ${formatRenewalDate(billingSummary.subscription.currentPeriodEnd)}`
+                    : `Renews ${formatRenewalDate(billingSummary.subscription.currentPeriodEnd)}`}
+                </span>
               </div>
             )}
           </div>
@@ -133,20 +186,32 @@ export default function Billing() {
             </div>
             
             <div className="p-4">
-              {planType === 'free' ? (
-                <p className="text-sm text-muted-foreground">No payment method on file</p>
-              ) : (
+              {billingLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : billingSummary?.paymentMethod ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-6 bg-gradient-to-r from-blue-600 to-blue-400 rounded flex items-center justify-center">
-                      <span className="text-[8px] font-bold text-white">VISA</span>
+                    <div className={`w-10 h-6 ${getCardBrand(billingSummary.paymentMethod.brand).bg} rounded flex items-center justify-center`}>
+                      <span className="text-[8px] font-bold text-white">
+                        {getCardBrand(billingSummary.paymentMethod.brand).text}
+                      </span>
                     </div>
                     <div>
-                      <p className="font-medium">Ending in ****</p>
-                      <p className="text-sm text-muted-foreground">Managed via Stripe</p>
+                      <p className="font-medium">
+                        {billingSummary.paymentMethod.brand?.charAt(0).toUpperCase()}
+                        {billingSummary.paymentMethod.brand?.slice(1)} ending in {billingSummary.paymentMethod.last4}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Expires {billingSummary.paymentMethod.expMonth}/{billingSummary.paymentMethod.expYear}
+                      </p>
                     </div>
                   </div>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No payment method on file</p>
               )}
             </div>
           </div>
@@ -160,12 +225,12 @@ export default function Billing() {
             </div>
             
             <div className="p-4">
-              {planType === 'free' ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No billing history</p>
-              ) : (
+              {billingSummary?.hasSubscription ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   View your complete billing history in the Stripe portal
                 </p>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No billing history</p>
               )}
             </div>
           </div>
