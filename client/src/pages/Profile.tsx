@@ -10,19 +10,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-const PANDA_COLORS = [
-  { name: "Purple", color: "#8b5cf6" },
-  { name: "Pink", color: "#ec4899" },
-  { name: "Blue", color: "#3b82f6" },
-  { name: "Green", color: "#10b981" },
-  { name: "Amber", color: "#f59e0b" },
-  { name: "Red", color: "#ef4444" },
-  { name: "Cyan", color: "#06b6d4" },
-  { name: "Orange", color: "#f97316" },
-];
-
 function generatePandaSvg(color: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="${color}"/><ellipse cx="30" cy="25" rx="15" ry="15" fill="#1a1a1a"/><ellipse cx="70" cy="25" rx="15" ry="15" fill="#1a1a1a"/><circle cx="50" cy="55" r="30" fill="white"/><ellipse cx="38" cy="50" rx="10" ry="12" fill="#1a1a1a"/><ellipse cx="62" cy="50" rx="10" ry="12" fill="#1a1a1a"/><circle cx="38" cy="48" r="4" fill="white"/><circle cx="62" cy="48" r="4" fill="white"/><ellipse cx="50" cy="65" rx="6" ry="4" fill="#1a1a1a"/><path d="M44 72 Q50 78 56 72" stroke="#1a1a1a" stroke-width="2" fill="none"/></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -84,10 +71,10 @@ export default function Profile() {
   
   const [isEditingDisplayName, setIsEditingDisplayName] = useState(false);
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const planType = (user?.planType || "free") as PlanType;
   const planInfo = PLAN_INFO[planType] || PLAN_INFO.free;
@@ -194,17 +181,39 @@ export default function Profile() {
     }
   };
 
-  const handleSaveAvatar = async (color: string) => {
-    setIsSaving(true);
-    const avatarUrl = generatePandaSvg(color);
-    const { success, error } = await updateProfile({ avatarUrl });
-    setIsSaving(false);
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be less than 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
     
-    if (success) {
-      setIsEditingAvatar(false);
-      toast({ title: "Avatar Updated", description: "Your new panda avatar has been saved." });
-    } else {
-      toast({ title: "Error", description: error || "Failed to update avatar", variant: "destructive" });
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string;
+        const { success, error } = await updateProfile({ avatarUrl: base64 });
+        setIsUploadingAvatar(false);
+        
+        if (success) {
+          toast({ title: "Avatar Updated", description: "Your profile picture has been saved." });
+        } else {
+          toast({ title: "Error", description: error || "Failed to update avatar", variant: "destructive" });
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setIsUploadingAvatar(false);
+      toast({ title: "Error", description: "Failed to upload image", variant: "destructive" });
     }
   };
 
@@ -254,11 +263,15 @@ export default function Profile() {
         <div className="max-w-lg mx-auto space-y-6">
           {/* Profile Header */}
           <div className="flex flex-col items-center text-center py-6">
-            <button 
-              onClick={() => setIsEditingAvatar(true)}
-              className="relative w-24 h-24 mb-4 group cursor-pointer"
-              data-testid="button-change-avatar"
-            >
+            <label className="relative w-24 h-24 mb-4 group cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={isUploadingAvatar}
+                data-testid="input-avatar-upload"
+              />
               <img
                 src={user?.avatarUrl || generatePandaSvg("#8b5cf6")}
                 alt="Profile"
@@ -266,14 +279,18 @@ export default function Profile() {
                 data-testid="img-avatar"
               />
               <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="w-6 h-6 text-white" />
+                {isUploadingAvatar ? (
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="w-6 h-6 text-white" />
+                )}
               </div>
               {user?.isOwner && (
                 <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full p-1">
                   <Crown className="w-4 h-4 text-white" />
                 </div>
               )}
-            </button>
+            </label>
             
             {/* Display Name */}
             {isEditingDisplayName ? (
@@ -450,32 +467,6 @@ export default function Profile() {
       </main>
 
       <Player className="bottom-16 lg:bottom-0" />
-
-      <Dialog open={isEditingAvatar} onOpenChange={setIsEditingAvatar}>
-        <DialogContent className="bg-card border-white/10 max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Choose Your Panda</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-4 gap-3 py-4">
-            {PANDA_COLORS.map((panda) => (
-              <button
-                key={panda.color}
-                onClick={() => handleSaveAvatar(panda.color)}
-                disabled={isSaving}
-                className="w-16 h-16 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-colors mx-auto"
-                title={panda.name}
-                data-testid={`button-avatar-${panda.name.toLowerCase()}`}
-              >
-                <img
-                  src={generatePandaSvg(panda.color)}
-                  alt={`${panda.name} panda`}
-                  className="w-full h-full"
-                />
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
