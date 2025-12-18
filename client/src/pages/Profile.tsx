@@ -1,49 +1,145 @@
+import { useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2 } from "lucide-react";
+import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink } from "lucide-react";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
-const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; description: string }> = {
+const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; description: string; bgColor: string; borderColor: string }> = {
   free: { 
     name: "Free", 
     color: "text-muted-foreground", 
     icon: null,
-    description: "Basic access to v1.5 model"
+    description: "Basic access to v1.5 model",
+    bgColor: "bg-secondary/20",
+    borderColor: "border-white/10"
   },
   ruby: { 
     name: "Ruby", 
     color: "text-red-400", 
     icon: Gem,
-    description: "Access to v1.5, v4, and v4.5 models"
+    description: "Access to v1.5, v4, and v4.5 models",
+    bgColor: "bg-red-500/10",
+    borderColor: "border-red-500/20"
   },
   pro: { 
     name: "Pro", 
     color: "text-purple-400", 
     icon: Crown,
-    description: "Access to v1.5, v5, and v6 models"
+    description: "Access to v1.5, v5, and v6 models",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/20"
   },
   diamond: { 
     name: "Diamond", 
     color: "text-cyan-400", 
     icon: Diamond,
-    description: "Unlimited access to all AI models"
+    description: "Unlimited access to all AI models",
+    bgColor: "bg-cyan-500/10",
+    borderColor: "border-cyan-500/20"
   },
 };
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  metadata: { plan_type: string };
+  prices: Array<{
+    id: string;
+    unit_amount: number;
+    currency: string;
+    recurring: { interval: string };
+  }>;
+}
 
 export default function Profile() {
   const { currentPlan, setPlan } = useSubscription();
   const { toast } = useToast();
+  const [location] = useLocation();
   const planInfo = PLAN_INFO[currentPlan];
   const PlanIcon = planInfo.icon;
 
-  const handleUpgrade = (plan: PlanType) => {
-    setPlan(plan);
-    toast({
-      title: `Upgraded to ${PLAN_INFO[plan].name}!`,
-      description: PLAN_INFO[plan].description,
-    });
+  const { data: plansData, isLoading: plansLoading } = useQuery<{ plans: SubscriptionPlan[] }>({
+    queryKey: ['/api/subscription/plans'],
+    queryFn: async () => {
+      const res = await fetch('/api/subscription/plans');
+      if (!res.ok) throw new Error('Failed to fetch plans');
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const plan = params.get('plan') as PlanType;
+    
+    if (success === 'true' && plan && PLAN_INFO[plan]) {
+      setPlan(plan);
+      toast({
+        title: `Welcome to ${PLAN_INFO[plan].name}!`,
+        description: PLAN_INFO[plan].description,
+      });
+      window.history.replaceState({}, '', '/profile');
+    }
+    
+    if (params.get('canceled') === 'true') {
+      toast({
+        title: "Checkout Canceled",
+        description: "No charges were made.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/profile');
+    }
+  }, [location, setPlan, toast]);
+
+  const handleCheckout = async (priceId: string, planType: string) => {
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, planType }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to create checkout');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatPrice = (amount: number) => {
+    return `$${(amount / 100).toFixed(2)}`;
+  };
+
+  const getPlanIcon = (planType: string) => {
+    switch (planType) {
+      case 'ruby': return Gem;
+      case 'pro': return Crown;
+      case 'diamond': return Diamond;
+      default: return null;
+    }
+  };
+
+  const getPlanColor = (planType: string) => {
+    switch (planType) {
+      case 'ruby': return 'text-red-400';
+      case 'pro': return 'text-purple-400';
+      case 'diamond': return 'text-cyan-400';
+      default: return 'text-white';
+    }
   };
 
   return (
@@ -64,7 +160,7 @@ export default function Profile() {
           </div>
 
           {/* Current Plan */}
-          <div className="bg-card border border-white/5 rounded-2xl p-5">
+          <div className={cn("border rounded-2xl p-5", planInfo.bgColor, planInfo.borderColor)}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-bold">Current Plan</h2>
               <div className={cn("flex items-center gap-1 font-bold", planInfo.color)}>
@@ -74,47 +170,78 @@ export default function Profile() {
             </div>
             <p className="text-sm text-muted-foreground mb-4">{planInfo.description}</p>
             
-            <div className="flex items-center gap-2 p-3 bg-secondary/30 rounded-xl mb-4">
+            <div className="flex items-center gap-2 p-3 bg-black/20 rounded-xl">
               <Music2 className="w-5 h-5 text-primary" />
               <div className="flex-1">
                 <p className="text-sm font-medium">55 Credits</p>
                 <p className="text-xs text-muted-foreground">Available for generation</p>
               </div>
             </div>
-
-            {currentPlan !== "diamond" && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground mb-2">Upgrade your plan:</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {currentPlan !== "ruby" && (
-                    <button
-                      onClick={() => handleUpgrade("ruby")}
-                      className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors text-center"
-                    >
-                      <Gem className="w-5 h-5 text-red-400 mx-auto mb-1" />
-                      <span className="text-xs font-medium text-red-400">Ruby</span>
-                    </button>
-                  )}
-                  {currentPlan !== "pro" && (
-                    <button
-                      onClick={() => handleUpgrade("pro")}
-                      className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 transition-colors text-center"
-                    >
-                      <Crown className="w-5 h-5 text-purple-400 mx-auto mb-1" />
-                      <span className="text-xs font-medium text-purple-400">Pro</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleUpgrade("diamond")}
-                    className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors text-center"
-                  >
-                    <Diamond className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-                    <span className="text-xs font-medium text-cyan-400">Diamond</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Upgrade Plans */}
+          {currentPlan !== "diamond" && (
+            <div className="bg-card border border-white/5 rounded-2xl p-5">
+              <h2 className="font-bold mb-4">Upgrade Your Plan</h2>
+              
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : plansData?.plans && plansData.plans.length > 0 ? (
+                <div className="space-y-3">
+                  {plansData.plans.map((plan) => {
+                    const planType = plan.metadata?.plan_type || plan.name.toLowerCase().replace(' plan', '');
+                    const Icon = getPlanIcon(planType);
+                    const price = plan.prices[0];
+                    const isCurrentPlan = currentPlan === planType;
+                    
+                    if (isCurrentPlan) return null;
+                    
+                    return (
+                      <button
+                        key={plan.id}
+                        onClick={() => price && handleCheckout(price.id, planType)}
+                        disabled={!price}
+                        className={cn(
+                          "w-full p-4 rounded-xl border transition-all text-left",
+                          planType === 'ruby' && "bg-red-500/10 border-red-500/20 hover:bg-red-500/20",
+                          planType === 'pro' && "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20",
+                          planType === 'diamond' && "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20",
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {Icon && <Icon className={cn("w-6 h-6", getPlanColor(planType))} />}
+                            <div>
+                              <h3 className={cn("font-bold", getPlanColor(planType))}>{plan.name}</h3>
+                              <p className="text-xs text-muted-foreground">{plan.description}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {price && (
+                              <>
+                                <p className="font-bold">{formatPrice(price.unit_amount)}</p>
+                                <p className="text-xs text-muted-foreground">/month</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-center gap-2 py-2 bg-white/10 rounded-lg text-sm font-medium">
+                          <span>Subscribe</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No plans available. Please try again later.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Menu Items */}
           <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
@@ -136,7 +263,10 @@ export default function Profile() {
 
           {/* Reset Plan (Demo) */}
           <button
-            onClick={() => handleUpgrade("free")}
+            onClick={() => {
+              setPlan("free");
+              toast({ title: "Plan Reset", description: "You're back on the Free plan." });
+            }}
             className="w-full text-xs text-muted-foreground hover:text-white transition-colors py-2"
           >
             Reset to Free Plan (Demo)

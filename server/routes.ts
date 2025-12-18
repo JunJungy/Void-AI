@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateMusicSchema } from "@shared/schema";
 import { z } from "zod";
+import { stripeService } from "./stripeService";
+import { getStripePublishableKey } from "./stripeClient";
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const KIE_API_BASE = "https://api.kie.ai/api/v1";
@@ -153,6 +155,75 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get track error:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/stripe/config", async (_req, res) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error) {
+      console.error("Stripe config error:", error);
+      res.status(500).json({ error: "Failed to get Stripe config" });
+    }
+  });
+
+  app.get("/api/subscription/plans", async (_req, res) => {
+    try {
+      const products = await stripeService.listProductsWithPrices();
+      
+      const productsMap = new Map();
+      for (const row of products) {
+        const productId = (row as any).product_id;
+        if (!productsMap.has(productId)) {
+          productsMap.set(productId, {
+            id: productId,
+            name: (row as any).product_name,
+            description: (row as any).product_description,
+            metadata: (row as any).product_metadata,
+            prices: []
+          });
+        }
+        if ((row as any).price_id) {
+          productsMap.get(productId).prices.push({
+            id: (row as any).price_id,
+            unit_amount: (row as any).unit_amount,
+            currency: (row as any).currency,
+            recurring: (row as any).recurring,
+          });
+        }
+      }
+
+      res.json({ plans: Array.from(productsMap.values()) });
+    } catch (error) {
+      console.error("Get plans error:", error);
+      res.status(500).json({ error: "Failed to get subscription plans" });
+    }
+  });
+
+  app.post("/api/checkout", async (req, res) => {
+    try {
+      const { priceId, planType, email } = req.body;
+
+      if (!priceId) {
+        return res.status(400).json({ error: "Price ID is required" });
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      
+      const session = await stripeService.createCheckoutSession({
+        priceId,
+        customerEmail: email,
+        successUrl: `${baseUrl}/profile?success=true&plan=${planType}`,
+        cancelUrl: `${baseUrl}/profile?canceled=true`,
+        mode: 'subscription',
+        metadata: { planType },
+      });
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
     }
   });
 
