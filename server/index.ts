@@ -161,6 +161,13 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
+  // Auto-create owner account if it doesn't exist (works in both dev and production)
+  await createOwnerAccount(
+    "jacobsewell31@gmail.com",
+    "Laughy@11",
+    "Jacob"
+  );
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
