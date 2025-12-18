@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { Wand2, Music2, Sparkles, ChevronDown, Check, Lock, Gem, Crown, Loader2, Play, Pause } from "lucide-react";
+import { Wand2, Music2, Sparkles, ChevronDown, Check, Lock, Gem, Crown, Loader2, Play, Pause, Diamond } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
 import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
@@ -22,6 +23,20 @@ const AI_MODELS = [
   { id: "V5", name: "v5", apiModel: "V5", description: "Premium quality. Best for professional-sounding tracks.", plan: "pro" },
   { id: "V6", name: "v6", apiModel: "V4_5", description: "Ultimate quality. State-of-the-art AI with studio-grade output.", plan: "pro" },
 ];
+
+const PLAN_NAMES: Record<PlanType, string> = {
+  free: "Free",
+  ruby: "Ruby",
+  pro: "Pro",
+  diamond: "Diamond",
+};
+
+const PLAN_COLORS: Record<PlanType, string> = {
+  free: "text-muted-foreground",
+  ruby: "text-red-400",
+  pro: "text-purple-400",
+  diamond: "text-cyan-400",
+};
 
 interface GeneratedTrack {
   id: string;
@@ -49,17 +64,31 @@ export default function Create() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const { currentPlan, setPlan, canAccessModel, getRequiredPlan } = useSubscription();
 
   const handleModelSelect = (model: typeof AI_MODELS[0]) => {
-    if (model.plan !== "free") {
+    const requiredPlan = getRequiredPlan(model.plan);
+    
+    if (requiredPlan) {
+      const planName = requiredPlan === "ruby" ? "Ruby" : "Pro";
       toast({
-        title: `Upgrade to ${model.plan === "ruby" ? "Ruby" : "Pro"} Plan`,
-        description: `The ${model.name} model requires a ${model.plan === "ruby" ? "Ruby" : "Pro"} subscription.`,
+        title: `Upgrade to ${planName} Plan`,
+        description: `The ${model.name} model requires a ${planName} subscription to use.`,
         variant: "destructive",
       });
       return; 
     }
     setSelectedModel(model);
+  };
+
+  const handleUpgrade = (plan: PlanType) => {
+    setPlan(plan);
+    toast({
+      title: `Upgraded to ${PLAN_NAMES[plan]}!`,
+      description: plan === "diamond" 
+        ? "You now have access to all AI models." 
+        : `You now have access to ${plan === "ruby" ? "Ruby" : "Pro"} tier models.`,
+    });
   };
 
   const pollTaskStatus = async (taskId: string) => {
@@ -284,42 +313,100 @@ export default function Create() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-72 bg-card border border-white/10 p-2 rounded-xl shadow-xl max-h-[400px] overflow-y-auto z-50">
-                {AI_MODELS.map((model) => (
-                  <DropdownMenuItem
-                    key={model.id}
-                    onClick={() => handleModelSelect(model)}
-                    data-testid={`button-model-${model.id}`}
-                    className={cn(
-                      "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50 mb-1 relative overflow-hidden",
-                      selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30",
-                      model.plan !== "free" && "opacity-90"
-                    )}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm">{model.name}</span>
-                        {model.plan === "pro" && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-1">
-                            <Crown className="w-3 h-3" /> PRO
-                          </span>
-                        )}
-                        {model.plan === "ruby" && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
-                            <Gem className="w-3 h-3" /> RUBY
-                          </span>
+                {AI_MODELS.map((model) => {
+                  const hasAccess = canAccessModel(model.plan);
+                  return (
+                    <DropdownMenuItem
+                      key={model.id}
+                      onClick={() => handleModelSelect(model)}
+                      data-testid={`button-model-${model.id}`}
+                      className={cn(
+                        "flex flex-col items-start gap-1 p-3 rounded-lg cursor-pointer focus:bg-secondary/50 mb-1 relative overflow-hidden",
+                        selectedModel.id === model.id ? "bg-secondary/50" : "hover:bg-secondary/30",
+                        !hasAccess && "opacity-70"
+                      )}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm">{model.name}</span>
+                          {model.plan === "pro" && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                              <Crown className="w-3 h-3" /> PRO
+                            </span>
+                          )}
+                          {model.plan === "ruby" && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+                              <Gem className="w-3 h-3" /> RUBY
+                            </span>
+                          )}
+                        </div>
+                        {selectedModel.id === model.id ? (
+                          <Check className="w-3 h-3 text-primary" />
+                        ) : (
+                          !hasAccess && <Lock className="w-3 h-3 text-muted-foreground" />
                         )}
                       </div>
-                      {selectedModel.id === model.id ? (
-                        <Check className="w-3 h-3 text-primary" />
-                      ) : (
-                         model.plan !== "free" && <Lock className="w-3 h-3 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground leading-tight">{model.description}</span>
-                  </DropdownMenuItem>
-                ))}
+                      <span className="text-xs text-muted-foreground leading-tight">{model.description}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+
+          {/* Plan Selector (Demo) */}
+          <div className="bg-card/50 border border-white/5 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Your Plan:</span>
+                <span className={cn("text-sm font-bold", PLAN_COLORS[currentPlan])}>
+                  {currentPlan === "diamond" && <Diamond className="w-3 h-3 inline mr-1" />}
+                  {currentPlan === "pro" && <Crown className="w-3 h-3 inline mr-1" />}
+                  {currentPlan === "ruby" && <Gem className="w-3 h-3 inline mr-1" />}
+                  {PLAN_NAMES[currentPlan]}
+                </span>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
+                    Upgrade
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48 bg-card border border-white/10 p-2 rounded-xl shadow-xl z-50">
+                  <DropdownMenuItem
+                    onClick={() => handleUpgrade("free")}
+                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "free" && "bg-secondary/50")}
+                  >
+                    <span className="text-muted-foreground">Free</span>
+                    {currentPlan === "free" && <Check className="w-3 h-3 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleUpgrade("ruby")}
+                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "ruby" && "bg-secondary/50")}
+                  >
+                    <Gem className="w-3 h-3 mr-2 text-red-400" />
+                    <span className="text-red-400 font-medium">Ruby</span>
+                    {currentPlan === "ruby" && <Check className="w-3 h-3 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleUpgrade("pro")}
+                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "pro" && "bg-secondary/50")}
+                  >
+                    <Crown className="w-3 h-3 mr-2 text-purple-400" />
+                    <span className="text-purple-400 font-medium">Pro</span>
+                    {currentPlan === "pro" && <Check className="w-3 h-3 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleUpgrade("diamond")}
+                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "diamond" && "bg-secondary/50")}
+                  >
+                    <Diamond className="w-3 h-3 mr-2 text-cyan-400" />
+                    <span className="text-cyan-400 font-medium">Diamond</span>
+                    {currentPlan === "diamond" && <Check className="w-3 h-3 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {mode === "custom" ? (
