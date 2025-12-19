@@ -8,6 +8,7 @@ import { getStripePublishableKey } from "./stripeClient";
 import { signup, login, getSessionUser, requireAuth } from "./auth";
 import { getDiscordAuthUrl, exchangeCodeForToken, getDiscordUser, findOrCreateDiscordUser, isDiscordConfigured } from "./discord";
 import crypto from "crypto";
+import { sendPushNotification } from "./firebaseAdmin";
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const KIE_API_BASE = "https://api.kie.ai/api/v1";
@@ -156,6 +157,23 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/user/fcm-token", requireAuth, async (req, res) => {
+    try {
+      const { fcmToken, enabled } = req.body;
+      const userId = req.session.userId!;
+
+      const user = await storage.updateUserFcmToken(userId, fcmToken, enabled);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("FCM token update error:", error);
+      res.status(500).json({ error: "Failed to update FCM token" });
+    }
+  });
+
   app.post("/api/generate", async (req, res) => {
     try {
       if (!KIE_API_KEY) {
@@ -163,6 +181,7 @@ export async function registerRoutes(
       }
 
       const input = generateMusicSchema.parse(req.body);
+      const userId = req.session?.userId;
 
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`;
       const requestBody: any = {
@@ -201,6 +220,7 @@ export async function registerRoutes(
 
       const track = await storage.createTrack({
         taskId: data.data.taskId,
+        userId: userId || undefined,
         title: input.title || input.prompt.split(",")[0] || "Untitled Track",
         prompt: input.prompt,
         style: input.style,
@@ -286,6 +306,8 @@ export async function registerRoutes(
       
       if (data.taskId && data.status === "SUCCESS" && data.data?.sunoData?.[0]) {
         const audioData = data.data.sunoData[0];
+        const track = await storage.getTrackByTaskId(data.taskId);
+        
         await storage.updateTrackByTaskId(data.taskId, {
           title: audioData.title || undefined,
           audioUrl: audioData.audioUrl,
@@ -294,12 +316,39 @@ export async function registerRoutes(
           status: "SUCCESS",
         });
         console.log("Track updated via callback:", data.taskId);
+
+        if (track?.userId) {
+          const user = await storage.getUser(track.userId);
+          if (user && (user as any).pushNotificationsEnabled && (user as any).fcmToken) {
+            const trackTitle = audioData.title || track.title || "Your track";
+            await sendPushNotification(
+              (user as any).fcmToken,
+              "Your track is ready!",
+              `"${trackTitle}" has finished generating.`,
+              { url: `/library`, trackId: track.id }
+            );
+            console.log("Push notification sent to user:", user.id);
+          }
+        }
       } else if (data.taskId && (data.status?.includes("FAILED") || data.status?.includes("ERROR"))) {
         await storage.updateTrackByTaskId(data.taskId, {
           status: data.status,
           errorMessage: data.errorMessage || "Generation failed",
         });
         console.log("Track failed via callback:", data.taskId);
+
+        const track = await storage.getTrackByTaskId(data.taskId);
+        if (track?.userId) {
+          const user = await storage.getUser(track.userId);
+          if (user && (user as any).pushNotificationsEnabled && (user as any).fcmToken) {
+            await sendPushNotification(
+              (user as any).fcmToken,
+              "Track generation failed",
+              `There was an issue generating your track. Please try again.`,
+              { url: `/library`, trackId: track.id }
+            );
+          }
+        }
       }
       
       res.json({ received: true });

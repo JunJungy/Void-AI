@@ -1,28 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { ArrowLeft, Bell, Volume2, Palette, Shield, Loader2 } from "lucide-react";
+import { ArrowLeft, Bell, Volume2, Shield, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { requestNotificationPermission, disableNotifications, onForegroundMessage } from "@/lib/firebase";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
   const { toast } = useToast();
   
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [highQualityAudio, setHighQualityAudio] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
+
+  useEffect(() => {
+    if ((user as any)?.pushNotificationsEnabled) {
+      setPushNotifications(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const unsubscribe = onForegroundMessage((payload: any) => {
+      toast({
+        title: payload.notification?.title || "Notification",
+        description: payload.notification?.body || "You have a new notification",
+      });
+    });
+    return () => unsubscribe();
+  }, [toast]);
 
   const handleToggle = (setting: string, value: boolean) => {
     toast({ 
       title: "Setting Updated", 
       description: `${setting} has been ${value ? 'enabled' : 'disabled'}.` 
     });
+  };
+
+  const handlePushNotificationToggle = async (enabled: boolean) => {
+    setPushLoading(true);
+    try {
+      if (enabled) {
+        if (!("Notification" in window)) {
+          toast({ 
+            title: "Not Supported", 
+            description: "Push notifications are not supported in this browser.",
+            variant: "destructive"
+          });
+          setPushLoading(false);
+          return;
+        }
+
+        const token = await requestNotificationPermission();
+        
+        if (!token) {
+          toast({ 
+            title: "Permission Denied", 
+            description: "Please allow notifications in your browser settings.",
+            variant: "destructive"
+          });
+          setPushLoading(false);
+          return;
+        }
+
+        await apiRequest("POST", "/api/user/fcm-token", { 
+          fcmToken: token, 
+          enabled: true 
+        });
+
+        setPushNotifications(true);
+        toast({ 
+          title: "Notifications Enabled", 
+          description: "You'll be notified when your tracks are ready!" 
+        });
+        refreshUser?.();
+      } else {
+        await disableNotifications();
+        await apiRequest("POST", "/api/user/fcm-token", { 
+          fcmToken: null, 
+          enabled: false 
+        });
+
+        setPushNotifications(false);
+        toast({ 
+          title: "Notifications Disabled", 
+          description: "You won't receive push notifications anymore." 
+        });
+        refreshUser?.();
+      }
+    } catch (error) {
+      console.error("Push notification toggle error:", error);
+      toast({ 
+        title: "Error", 
+        description: "Failed to update notification settings.",
+        variant: "destructive"
+      });
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   if (authLoading) {
@@ -86,15 +168,16 @@ export default function Settings() {
                   <p className="font-medium">Push Notifications</p>
                   <p className="text-sm text-muted-foreground">Get notified when tracks are ready</p>
                 </Label>
-                <Switch
-                  id="push-notifications"
-                  checked={pushNotifications}
-                  onCheckedChange={(checked) => {
-                    setPushNotifications(checked);
-                    handleToggle("Push notifications", checked);
-                  }}
-                  data-testid="switch-push-notifications"
-                />
+                <div className="flex items-center gap-2">
+                  {pushLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  <Switch
+                    id="push-notifications"
+                    checked={pushNotifications}
+                    disabled={pushLoading}
+                    onCheckedChange={handlePushNotificationToggle}
+                    data-testid="switch-push-notifications"
+                  />
+                </div>
               </div>
               
               <div className="flex items-center justify-between">
