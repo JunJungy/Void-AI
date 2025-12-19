@@ -174,14 +174,14 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/generate", async (req, res) => {
+  app.post("/api/generate", requireAuth, async (req, res) => {
     try {
       if (!KIE_API_KEY) {
         return res.status(500).json({ error: "KIE_API_KEY not configured" });
       }
 
       const input = generateMusicSchema.parse(req.body);
-      const userId = req.session?.userId;
+      const userId = req.session.userId!;
 
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`;
       const requestBody: any = {
@@ -220,7 +220,7 @@ export async function registerRoutes(
 
       const track = await storage.createTrack({
         taskId: data.data.taskId,
-        userId: userId || undefined,
+        userId: userId,
         title: input.title || input.prompt.split(",")[0] || "Untitled Track",
         prompt: input.prompt,
         style: input.style,
@@ -319,10 +319,10 @@ export async function registerRoutes(
 
         if (track?.userId) {
           const user = await storage.getUser(track.userId);
-          if (user && (user as any).pushNotificationsEnabled && (user as any).fcmToken) {
+          if (user && user.pushNotificationsEnabled && user.fcmToken) {
             const trackTitle = audioData.title || track.title || "Your track";
             await sendPushNotification(
-              (user as any).fcmToken,
+              user.fcmToken,
               "Your track is ready!",
               `"${trackTitle}" has finished generating.`,
               { url: `/library`, trackId: track.id }
@@ -340,9 +340,9 @@ export async function registerRoutes(
         const track = await storage.getTrackByTaskId(data.taskId);
         if (track?.userId) {
           const user = await storage.getUser(track.userId);
-          if (user && (user as any).pushNotificationsEnabled && (user as any).fcmToken) {
+          if (user && user.pushNotificationsEnabled && user.fcmToken) {
             await sendPushNotification(
-              (user as any).fcmToken,
+              user.fcmToken,
               "Track generation failed",
               `There was an issue generating your track. Please try again.`,
               { url: `/library`, trackId: track.id }

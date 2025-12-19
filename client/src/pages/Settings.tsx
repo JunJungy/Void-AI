@@ -22,7 +22,7 @@ export default function Settings() {
   const [autoPlay, setAutoPlay] = useState(true);
 
   useEffect(() => {
-    if ((user as any)?.pushNotificationsEnabled) {
+    if (user?.pushNotificationsEnabled) {
       setPushNotifications(true);
     }
   }, [user]);

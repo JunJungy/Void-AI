@@ -12,6 +12,8 @@ interface User {
   credits: number;
   isOwner: boolean;
   discordId: string | null;
+  fcmToken: string | null;
+  pushNotificationsEnabled: boolean;
   createdAt: string;
 }
 
