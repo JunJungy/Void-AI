@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateMusicSchema, signupSchema, loginSchema, updateProfileSchema } from "@shared/schema";
+import { generateMusicSchema, signupSchema, loginSchema, updateProfileSchema, generateVideoSchema } from "@shared/schema";
 import { z } from "zod";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
@@ -9,6 +9,7 @@ import { signup, login, getSessionUser, requireAuth } from "./auth";
 import { getDiscordAuthUrl, exchangeCodeForToken, getDiscordUser, findOrCreateDiscordUser, isDiscordConfigured } from "./discord";
 import crypto from "crypto";
 import { sendPushNotification } from "./firebaseAdmin";
+import { createVideoGeneration, getVideoGenerationStatus, isRunwayConfigured } from "./runwayService";
 
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const KIE_API_BASE = "https://api.kie.ai/api/v1";
@@ -556,6 +557,171 @@ export async function registerRoutes(
       console.error("Billing summary error:", error);
       res.status(500).json({ error: "Failed to get billing summary" });
     }
+  });
+
+  const VIDEO_CREDIT_COST = 25;
+
+  app.post("/api/videos/generate", requireAuth, async (req, res) => {
+    try {
+      if (!isRunwayConfigured()) {
+        return res.status(503).json({ error: "Video generation service not configured" });
+      }
+
+      const { trackId, prompt, style } = generateVideoSchema.parse(req.body);
+      const userId = req.session.userId!;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if ((user.credits || 0) < VIDEO_CREDIT_COST) {
+        return res.status(402).json({ 
+          error: "Insufficient credits", 
+          required: VIDEO_CREDIT_COST, 
+          available: user.credits || 0 
+        });
+      }
+
+      const track = await storage.getTrack(trackId);
+      if (!track) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+
+      if (track.userId !== userId) {
+        return res.status(403).json({ error: "You don't own this track" });
+      }
+
+      if (!track.imageUrl) {
+        return res.status(400).json({ error: "Track has no cover image for video generation" });
+      }
+
+      const fullPrompt = style ? `${style} style: ${prompt}` : prompt;
+      const { taskId, error } = await createVideoGeneration(track.imageUrl, fullPrompt);
+
+      if (error || !taskId) {
+        return res.status(500).json({ error: error || "Failed to start video generation" });
+      }
+
+      await storage.deductCredits(userId, VIDEO_CREDIT_COST);
+
+      const videoJob = await storage.createVideoJob({
+        userId,
+        trackId,
+        runwayJobId: taskId,
+        prompt: fullPrompt,
+        style: style || null,
+        status: "PENDING",
+        creditsCost: VIDEO_CREDIT_COST,
+      });
+
+      res.json({ videoJob });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Video generation error:", error);
+      res.status(500).json({ error: "Failed to start video generation" });
+    }
+  });
+
+  app.get("/api/videos", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const videos = await storage.getVideoJobsByUserId(userId);
+      res.json(videos);
+    } catch (error) {
+      console.error("Get videos error:", error);
+      res.status(500).json({ error: "Failed to get videos" });
+    }
+  });
+
+  app.get("/api/videos/:id", requireAuth, async (req, res) => {
+    try {
+      const video = await storage.getVideoJob(req.params.id);
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      if (video.userId !== req.session.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      res.json(video);
+    } catch (error) {
+      console.error("Get video error:", error);
+      res.status(500).json({ error: "Failed to get video" });
+    }
+  });
+
+  app.get("/api/videos/:id/status", requireAuth, async (req, res) => {
+    try {
+      const video = await storage.getVideoJob(req.params.id);
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      if (video.userId !== req.session.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      if (video.status === "SUCCESS" || video.status === "FAILED") {
+        return res.json(video);
+      }
+
+      if (!video.runwayJobId) {
+        return res.json(video);
+      }
+
+      const runwayStatus = await getVideoGenerationStatus(video.runwayJobId);
+      if (!runwayStatus) {
+        return res.json(video);
+      }
+
+      if (runwayStatus.status === "SUCCEEDED" && runwayStatus.output?.[0]) {
+        const updated = await storage.updateVideoJob(video.id, {
+          status: "SUCCESS",
+          videoUrl: runwayStatus.output[0],
+        });
+        return res.json(updated);
+      } else if (runwayStatus.status === "FAILED") {
+        const updated = await storage.updateVideoJob(video.id, {
+          status: "FAILED",
+          errorMessage: runwayStatus.failure || "Video generation failed",
+        });
+        return res.json(updated);
+      } else {
+        const updated = await storage.updateVideoJob(video.id, {
+          status: runwayStatus.status === "RUNNING" ? "PROCESSING" : "PENDING",
+        });
+        return res.json(updated);
+      }
+    } catch (error) {
+      console.error("Video status check error:", error);
+      res.status(500).json({ error: "Failed to check video status" });
+    }
+  });
+
+  app.get("/api/tracks/:trackId/videos", requireAuth, async (req, res) => {
+    try {
+      const track = await storage.getTrack(req.params.trackId);
+      if (!track) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+      if (track.userId !== req.session.userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const videos = await storage.getVideoJobsByTrackId(req.params.trackId);
+      res.json(videos);
+    } catch (error) {
+      console.error("Get track videos error:", error);
+      res.status(500).json({ error: "Failed to get videos for track" });
+    }
+  });
+
+  app.get("/api/video-config", requireAuth, (req, res) => {
+    res.json({
+      available: isRunwayConfigured(),
+      creditCost: VIDEO_CREDIT_COST,
+    });
   });
 
   return httpServer;
