@@ -81,3 +81,16 @@ Preferred communication style: Simple, everyday language.
 ### Environment Variables Required
 - `DATABASE_URL`: PostgreSQL connection string
 - `KIE_API_KEY`: API key for KIE AI music generation service
+
+## Admin Features
+
+### Promo Code System
+- **Admin Panel** (`/admin`): Only visible to owners (users with `isOwner=true`)
+- **Create Promo Codes**: Generate codes with plan type (pro/ruby/diamond), duration in days, max uses, and bonus credits
+- **User Management**: View all users, update their plans, add credits
+- **Code Redemption**: Users can redeem codes in Settings page to unlock premium plans for limited time
+
+### Database Tables
+- `promo_codes`: Stores promo codes with usage tracking
+- `code_redemptions`: Tracks which users redeemed which codes
+- `users.planExpiresAt`: Tracks when time-limited plans expire
