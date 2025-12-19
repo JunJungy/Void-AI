@@ -122,13 +122,62 @@
   --input: 25 40% 18%;
 }
 
+/* Holiday Theme - Thanksgiving */
+:root.holiday-thanksgiving {
+  --background: 30 50% 8%;
+  --foreground: 30 80% 55%;
+  --card: 30 45% 12%;
+  --card-foreground: 30 75% 60%;
+  --popover: 30 45% 12%;
+  --popover-foreground: 30 75% 60%;
+  --muted-foreground: 30 50% 50%;
+  --border: 30 40% 18%;
+  --input: 30 40% 18%;
+}
+
+/* Holiday Theme - Valentine's Day */
+:root.holiday-valentines {
+  --background: 330 50% 8%;
+  --foreground: 350 80% 65%;
+  --card: 330 45% 12%;
+  --card-foreground: 350 75% 70%;
+  --popover: 330 45% 12%;
+  --popover-foreground: 350 75% 70%;
+  --muted-foreground: 340 50% 55%;
+  --border: 330 40% 18%;
+  --input: 330 40% 18%;
+}
+
+/* Holiday Theme - New Year's */
+:root.holiday-newyear {
+  --background: 240 50% 8%;
+  --foreground: 50 90% 60%;
+  --card: 240 45% 12%;
+  --card-foreground: 50 85% 65%;
+  --popover: 240 45% 12%;
+  --popover-foreground: 50 85% 65%;
+  --muted-foreground: 50 60% 50%;
+  --border: 240 40% 18%;
+  --input: 240 40% 18%;
+}
+
+/* Holiday Theme - 4th of July */
+:root.holiday-july4th {
+  --background: 220 60% 10%;
+  --foreground: 0 80% 60%;
+  --card: 220 50% 14%;
+  --card-foreground: 0 75% 65%;
+  --popover: 220 50% 14%;
+  --popover-foreground: 0 75% 65%;
+  --muted-foreground: 0 50% 55%;
+  --border: 220 40% 20%;
+  --input: 220 40% 20%;
+}
+
 /* Preserve original icon colors in Admin panel during holidays */
-:root.holiday-christmas [data-testid^="tab-"] svg,
-:root.holiday-christmas [data-testid^="button-"] svg,
-:root.holiday-christmas [data-testid^="menuitem-"] svg,
-:root.holiday-halloween [data-testid^="tab-"] svg,
-:root.holiday-halloween [data-testid^="button-"] svg,
-:root.holiday-halloween [data-testid^="menuitem-"] svg {
+:root[class*="holiday-"] [data-testid^="tab-"] svg,
+:root[class*="holiday-"] [data-testid^="button-"] svg,
+:root[class*="holiday-"] [data-testid^="menuitem-"] svg {
   color: inherit;
 }
 

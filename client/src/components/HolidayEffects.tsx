@@ -9,26 +9,28 @@ interface Particle {
   size: number;
 }
 
-function Snowflake({ particle }: { particle: Particle }) {
-  return (
-    <div
-      className="fixed pointer-events-none text-white/30 animate-fall z-0"
-      style={{
-        left: `${particle.x}%`,
-        animationDelay: `${particle.delay}s`,
-        animationDuration: `${particle.duration}s`,
-        fontSize: `${particle.size}px`,
-      }}
-    >
-      ❄
-    </div>
-  );
-}
+const HOLIDAY_EMOJIS: Record<Exclude<Holiday, null>, string> = {
+  christmas: '❄',
+  halloween: '👻',
+  thanksgiving: '🍂',
+  valentines: '💕',
+  newyear: '✨',
+  july4th: '🎆',
+};
 
-function Ghost({ particle }: { particle: Particle }) {
+const HOLIDAY_OPACITY: Record<Exclude<Holiday, null>, string> = {
+  christmas: 'text-white/30',
+  halloween: 'text-white/20',
+  thanksgiving: 'text-orange-400/30',
+  valentines: 'text-pink-400/40',
+  newyear: 'text-yellow-400/40',
+  july4th: 'text-white/30',
+};
+
+function FallingParticle({ particle, holiday }: { particle: Particle; holiday: Exclude<Holiday, null> }) {
   return (
     <div
-      className="fixed pointer-events-none text-white/20 animate-fall z-0"
+      className={`fixed pointer-events-none animate-fall z-0 ${HOLIDAY_OPACITY[holiday]}`}
       style={{
         left: `${particle.x}%`,
         animationDelay: `${particle.delay}s`,
@@ -36,7 +38,7 @@ function Ghost({ particle }: { particle: Particle }) {
         fontSize: `${particle.size}px`,
       }}
     >
-      👻
+      {HOLIDAY_EMOJIS[holiday]}
     </div>
   );
 }
@@ -63,13 +65,9 @@ export function HolidayEffects() {
 
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {particles.map((particle) =>
-        holiday === 'christmas' ? (
-          <Snowflake key={particle.id} particle={particle} />
-        ) : (
-          <Ghost key={particle.id} particle={particle} />
-        )
-      )}
+      {particles.map((particle) => (
+        <FallingParticle key={particle.id} particle={particle} holiday={holiday} />
+      ))}
     </div>
   );
 }

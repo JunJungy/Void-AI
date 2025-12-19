@@ -46,7 +46,14 @@ function App() {
       document.documentElement.classList.add(`holiday-${holiday}`);
     }
     return () => {
-      document.documentElement.classList.remove('holiday-christmas', 'holiday-halloween');
+      document.documentElement.classList.remove(
+        'holiday-christmas', 
+        'holiday-halloween',
+        'holiday-thanksgiving',
+        'holiday-valentines',
+        'holiday-newyear',
+        'holiday-july4th'
+      );
     };
   }, []);
 
