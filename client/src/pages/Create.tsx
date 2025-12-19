@@ -13,6 +13,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { useAuth } from "@/lib/authContext";
+import { Link } from "wouter";
 import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
 import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
@@ -85,15 +86,6 @@ export default function Create() {
     setSelectedModel(model);
   };
 
-  const handleUpgrade = (plan: PlanType) => {
-    setPlan(plan);
-    toast({
-      title: `Upgraded to ${PLAN_NAMES[plan]}!`,
-      description: plan === "diamond" 
-        ? "You now have access to all AI models." 
-        : `You now have access to ${plan === "ruby" ? "Ruby" : "Pro"} tier models.`,
-    });
-  };
 
   const pollTaskStatus = async (taskId: string) => {
     setIsPolling(true);
@@ -358,7 +350,7 @@ export default function Create() {
             </DropdownMenu>
           </div>
 
-          {/* Plan Selector (Demo) */}
+          {/* Plan Display */}
           <div className="bg-card/50 border border-white/5 rounded-xl p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -370,46 +362,11 @@ export default function Create() {
                   {PLAN_NAMES[userPlan]}
                 </span>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
-                    Upgrade
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48 bg-card border border-white/10 p-2 rounded-xl shadow-xl z-50">
-                  <DropdownMenuItem
-                    onClick={() => handleUpgrade("free")}
-                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "free" && "bg-secondary/50")}
-                  >
-                    <span className="text-muted-foreground">Free</span>
-                    {currentPlan === "free" && <Check className="w-3 h-3 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleUpgrade("ruby")}
-                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "ruby" && "bg-secondary/50")}
-                  >
-                    <Gem className="w-3 h-3 mr-2 text-red-400" />
-                    <span className="text-red-400 font-medium">Ruby</span>
-                    {currentPlan === "ruby" && <Check className="w-3 h-3 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleUpgrade("pro")}
-                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "pro" && "bg-secondary/50")}
-                  >
-                    <Crown className="w-3 h-3 mr-2 text-purple-400" />
-                    <span className="text-purple-400 font-medium">Pro</span>
-                    {currentPlan === "pro" && <Check className="w-3 h-3 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleUpgrade("diamond")}
-                    className={cn("p-2 rounded-lg cursor-pointer", currentPlan === "diamond" && "bg-secondary/50")}
-                  >
-                    <Diamond className="w-3 h-3 mr-2 text-cyan-400" />
-                    <span className="text-cyan-400 font-medium">Diamond</span>
-                    {currentPlan === "diamond" && <Check className="w-3 h-3 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Link href="/billing">
+                <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary hover:bg-primary/30 transition-colors cursor-pointer">
+                  Upgrade
+                </span>
+              </Link>
             </div>
           </div>
 
