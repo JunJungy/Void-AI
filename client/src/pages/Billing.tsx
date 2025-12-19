@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { ArrowLeft, CreditCard, ExternalLink, Loader2, Gem, Crown, Diamond, CheckCircle, Calendar, Receipt } from "lucide-react";
+import { ArrowLeft, CreditCard, ExternalLink, Loader2, Gem, Crown, Diamond, CheckCircle, Calendar, Receipt, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; bgColor: string }> = {
   free: { name: "Free", color: "text-muted-foreground", icon: null, bgColor: "bg-secondary/20" },
@@ -16,6 +17,19 @@ const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; bgCo
   pro: { name: "Pro", color: "text-purple-400", icon: Crown, bgColor: "bg-purple-500/10" },
   diamond: { name: "Diamond", color: "text-cyan-400", icon: Diamond, bgColor: "bg-cyan-500/10" },
 };
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  metadata: { plan_type?: string; credits?: string };
+  prices: Array<{
+    id: string;
+    unit_amount: number;
+    currency: string;
+    recurring: { interval: string };
+  }>;
+}
 
 const CARD_BRANDS: Record<string, { bg: string; text: string }> = {
   visa: { bg: "bg-gradient-to-r from-blue-600 to-blue-400", text: "VISA" },
@@ -45,6 +59,7 @@ export default function Billing() {
   const { currentPlan } = useSubscription();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const { data: billingSummary, isLoading: billingLoading } = useQuery<BillingSummary>({
     queryKey: ["/api/billing/summary"],
@@ -55,9 +70,67 @@ export default function Billing() {
     enabled: isAuthenticated,
   });
 
+  const { data: plansData, isLoading: plansLoading } = useQuery<{ plans: SubscriptionPlan[] }>({
+    queryKey: ['/api/subscription/plans'],
+    queryFn: async () => {
+      const res = await fetch('/api/subscription/plans');
+      if (!res.ok) throw new Error('Failed to fetch plans');
+      return res.json();
+    },
+  });
+
   const planType = (user?.planType || "free") as PlanType;
   const planInfo = PLAN_INFO[planType] || PLAN_INFO.free;
   const PlanIcon = planInfo.icon;
+
+  const handleCheckout = async (priceId: string, planTypeKey: string) => {
+    setCheckoutLoading(planTypeKey);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, planType: planTypeKey, email: user?.email }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'Failed to create checkout');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const getPlanIcon = (planTypeKey: string) => {
+    switch (planTypeKey) {
+      case 'ruby': return Gem;
+      case 'pro': return Crown;
+      case 'diamond': return Diamond;
+      default: return null;
+    }
+  };
+
+  const getPlanColor = (planTypeKey: string) => {
+    switch (planTypeKey) {
+      case 'ruby': return 'text-red-400';
+      case 'pro': return 'text-purple-400';
+      case 'diamond': return 'text-cyan-400';
+      default: return 'text-white';
+    }
+  };
+
+  const formatPrice = (cents: number) => {
+    return `$${(cents / 100).toFixed(2)}`;
+  };
 
   const handleManageSubscription = async () => {
     if (planType === "free") {
@@ -176,6 +249,73 @@ export default function Billing() {
               </div>
             )}
           </div>
+
+          {/* Choose a Plan Section */}
+          {planType !== "diamond" && (
+            <div className="bg-card border border-white/5 rounded-2xl p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <h2 className="font-bold">Choose a Plan</h2>
+              </div>
+              
+              {plansLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                </div>
+              ) : plansData?.plans && plansData.plans.length > 0 ? (
+                <div className="space-y-3">
+                  {plansData.plans.map((plan) => {
+                    const planTypeKey = plan.metadata?.plan_type || plan.name.toLowerCase().replace(' plan', '');
+                    const Icon = getPlanIcon(planTypeKey);
+                    const price = plan.prices[0];
+                    const isCurrentPlan = planType === planTypeKey;
+                    const credits = plan.metadata?.credits || '0';
+                    
+                    if (isCurrentPlan) return null;
+                    
+                    return (
+                      <button
+                        key={plan.id}
+                        onClick={() => price && handleCheckout(price.id, planTypeKey)}
+                        disabled={!price || checkoutLoading === planTypeKey}
+                        className={cn(
+                          "w-full p-4 rounded-xl border transition-all text-left",
+                          planTypeKey === 'ruby' && "bg-red-500/10 border-red-500/20 hover:bg-red-500/20",
+                          planTypeKey === 'pro' && "bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20",
+                          planTypeKey === 'diamond' && "bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20",
+                        )}
+                        data-testid={`button-upgrade-${planTypeKey}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {Icon && <Icon className={cn("w-6 h-6", getPlanColor(planTypeKey))} />}
+                            <div>
+                              <h3 className={cn("font-bold", getPlanColor(planTypeKey))}>{plan.name}</h3>
+                              <p className="text-xs text-muted-foreground">{credits} credits/month</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {checkoutLoading === planTypeKey ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : price ? (
+                              <>
+                                <p className="font-bold">{formatPrice(price.unit_amount)}</p>
+                                <p className="text-xs text-muted-foreground">/month</p>
+                              </>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Unavailable</p>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No plans available</p>
+              )}
+            </div>
+          )}
 
           <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-white/5">
