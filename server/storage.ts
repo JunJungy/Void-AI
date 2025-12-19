@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Track, type InsertTrack, type UpdateProfile, type VideoJob, type InsertVideoJob, users, tracks, videoJobs } from "@shared/schema";
+import { type User, type InsertUser, type Track, type InsertTrack, type UpdateProfile, type VideoJob, type InsertVideoJob, type PromoCode, type InsertPromoCode, type CodeRedemption, type InsertCodeRedemption, users, tracks, videoJobs, promoCodes, codeRedemptions } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -31,6 +31,22 @@ export interface IStorage {
   getVideoJobsByUserId(userId: string): Promise<VideoJob[]>;
   getVideoJobsByTrackId(trackId: string): Promise<VideoJob[]>;
   updateVideoJob(id: string, updates: Partial<VideoJob>): Promise<VideoJob | undefined>;
+  
+  createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode>;
+  getPromoCode(id: string): Promise<PromoCode | undefined>;
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  getAllPromoCodes(): Promise<PromoCode[]>;
+  updatePromoCode(id: string, updates: Partial<PromoCode>): Promise<PromoCode | undefined>;
+  deletePromoCode(id: string): Promise<void>;
+  incrementPromoCodeUses(id: string): Promise<PromoCode | undefined>;
+  
+  createCodeRedemption(redemption: InsertCodeRedemption): Promise<CodeRedemption>;
+  getCodeRedemptionByUserAndCode(userId: string, promoCodeId: string): Promise<CodeRedemption | undefined>;
+  getRedemptionsByUserId(userId: string): Promise<CodeRedemption[]>;
+  
+  updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date): Promise<User | undefined>;
+  addUserCredits(id: string, amount: number): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -168,6 +184,77 @@ export class DatabaseStorage implements IStorage {
   async updateVideoJob(id: string, updates: Partial<VideoJob>): Promise<VideoJob | undefined> {
     const [job] = await db.update(videoJobs).set(updates).where(eq(videoJobs.id, id)).returning();
     return job || undefined;
+  }
+
+  async createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode> {
+    const [code] = await db.insert(promoCodes).values(promoCode).returning();
+    return code;
+  }
+
+  async getPromoCode(id: string): Promise<PromoCode | undefined> {
+    const [code] = await db.select().from(promoCodes).where(eq(promoCodes.id, id));
+    return code || undefined;
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [result] = await db.select().from(promoCodes).where(eq(promoCodes.code, code));
+    return result || undefined;
+  }
+
+  async getAllPromoCodes(): Promise<PromoCode[]> {
+    return db.select().from(promoCodes).orderBy(desc(promoCodes.createdAt));
+  }
+
+  async updatePromoCode(id: string, updates: Partial<PromoCode>): Promise<PromoCode | undefined> {
+    const [code] = await db.update(promoCodes).set(updates).where(eq(promoCodes.id, id)).returning();
+    return code || undefined;
+  }
+
+  async deletePromoCode(id: string): Promise<void> {
+    await db.delete(promoCodes).where(eq(promoCodes.id, id));
+  }
+
+  async incrementPromoCodeUses(id: string): Promise<PromoCode | undefined> {
+    const [code] = await db.update(promoCodes)
+      .set({ currentUses: sql`${promoCodes.currentUses} + 1` })
+      .where(eq(promoCodes.id, id))
+      .returning();
+    return code || undefined;
+  }
+
+  async createCodeRedemption(redemption: InsertCodeRedemption): Promise<CodeRedemption> {
+    const [result] = await db.insert(codeRedemptions).values(redemption).returning();
+    return result;
+  }
+
+  async getCodeRedemptionByUserAndCode(userId: string, promoCodeId: string): Promise<CodeRedemption | undefined> {
+    const [result] = await db.select().from(codeRedemptions)
+      .where(and(eq(codeRedemptions.userId, userId), eq(codeRedemptions.promoCodeId, promoCodeId)));
+    return result || undefined;
+  }
+
+  async getRedemptionsByUserId(userId: string): Promise<CodeRedemption[]> {
+    return db.select().from(codeRedemptions).where(eq(codeRedemptions.userId, userId));
+  }
+
+  async updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set({ planType, planExpiresAt: expiresAt })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async addUserCredits(id: string, amount: number): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+    const newCredits = (user.credits || 0) + amount;
+    const [updated] = await db.update(users).set({ credits: newCredits }).where(eq(users.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
   }
 }
 

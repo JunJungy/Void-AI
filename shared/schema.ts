@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url").default("https://cdn-icons-png.flaticon.com/512/2977/2977485.png"),
   bio: text("bio"),
   planType: text("plan_type").default("free"),
+  planExpiresAt: timestamp("plan_expires_at"),
   credits: integer("credits").default(55),
   lastCreditRefresh: timestamp("last_credit_refresh").defaultNow(),
   isOwner: boolean("is_owner").default(false),
@@ -122,3 +123,58 @@ export const generateVideoSchema = z.object({
 });
 
 export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
+
+export const promoCodes = pgTable("promo_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(),
+  planType: text("plan_type").notNull(),
+  durationDays: integer("duration_days").notNull(),
+  maxUses: integer("max_uses").default(1),
+  currentUses: integer("current_uses").default(0),
+  bonusCredits: integer("bonus_credits").default(0),
+  isActive: boolean("is_active").default(true),
+  expiresAt: timestamp("expires_at"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
+  id: true,
+  currentUses: true,
+  createdAt: true,
+});
+
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
+
+export const codeRedemptions = pgTable("code_redemptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  promoCodeId: varchar("promo_code_id").references(() => promoCodes.id).notNull(),
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
+});
+
+export const insertCodeRedemptionSchema = createInsertSchema(codeRedemptions).omit({
+  id: true,
+  redeemedAt: true,
+});
+
+export type InsertCodeRedemption = z.infer<typeof insertCodeRedemptionSchema>;
+export type CodeRedemption = typeof codeRedemptions.$inferSelect;
+
+export const createPromoCodeSchema = z.object({
+  code: z.string().min(3).max(30),
+  planType: z.enum(["pro", "ruby", "diamond"]),
+  durationDays: z.number().min(1).max(365),
+  maxUses: z.number().min(1).max(10000).default(1),
+  bonusCredits: z.number().min(0).default(0),
+  expiresAt: z.string().optional(),
+});
+
+export type CreatePromoCodeInput = z.infer<typeof createPromoCodeSchema>;
+
+export const redeemCodeSchema = z.object({
+  code: z.string().min(1),
+});
+
+export type RedeemCodeInput = z.infer<typeof redeemCodeSchema>;
