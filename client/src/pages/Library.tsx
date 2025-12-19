@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Play, Pause, Loader2, Music2, Video, Film, X } from "lucide-react";
+import { Play, Pause, Loader2, Music2, Video, Film, X, Download } from "lucide-react";
 import { Link } from "wouter";
 import { usePlayer } from "@/lib/playerContext";
 import { useToast } from "@/hooks/use-toast";
@@ -68,6 +68,23 @@ function formatDuration(seconds?: number) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+async function downloadFile(url: string, filename: string, format: string) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `${filename}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
 }
 
 function formatDate(dateString: string) {
@@ -164,6 +181,18 @@ function TrackRow({
         </span>
       </div>
 
+      {track.status === "SUCCESS" && track.audioUrl && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+          onClick={() => downloadFile(track.audioUrl!, track.title, 'mp3')}
+          data-testid={`button-download-track-${track.id}`}
+        >
+          <Download className="w-4 h-4" />
+        </Button>
+      )}
+
       {canCreateVideo && (
         <Button
           variant="ghost"
@@ -257,14 +286,24 @@ function VideoRow({ video, track }: { video: VideoJob; track?: Track }) {
         </div>
 
         {video.videoUrl && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPlayer(true)}
-            data-testid={`button-play-video-${video.id}`}
-          >
-            <Play className="w-4 h-4" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowPlayer(true)}
+              data-testid={`button-play-video-${video.id}`}
+            >
+              <Play className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => downloadFile(video.videoUrl!, track?.title || 'video', 'mp4')}
+              data-testid={`button-download-video-${video.id}`}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+          </>
         )}
       </div>
 
