@@ -21,12 +21,10 @@ function generatePandaAvatar(): string {
 }
 
 function generateUsername(): string {
-  const adjectives = ["void", "cosmic", "stellar", "neon", "cyber", "digital"];
-  const nouns = ["panda", "artist", "creator", "maker", "dreamer", "star"];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const num = Math.floor(Math.random() * 9999);
-  return `${adj}_${noun}_${num}`;
+  const suffixes = ["ava", "max", "kai", "zoe", "leo", "ivy", "rex", "mia", "ace", "sky", "ray", "fox", "neo", "eve", "ash"];
+  const num = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+  return `panda_${num}_${suffix}`;
 }
 
 export async function signup(email: string, password: string): Promise<{ user: Omit<User, "password">; error?: string }> {
@@ -86,10 +84,11 @@ export async function createOwnerAccount(email: string, password: string, displa
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const username = generateUsername();
   
   const user = await storage.createUser({
     email,
-    username: "owner",
+    username,
     password: hashedPassword,
     displayName,
     avatarUrl: generatePandaAvatar(),
