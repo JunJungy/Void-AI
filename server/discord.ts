@@ -109,7 +109,10 @@ export async function findOrCreateDiscordUser(discordUser: {
     return { id: existingEmail.id, email: existingEmail.email, username: existingEmail.username, isNew: false };
   }
 
-  const username = `${discordUser.username}_${Math.floor(Math.random() * 9999)}`;
+  const suffixes = ["ava", "max", "kai", "zoe", "leo", "ivy", "rex", "mia", "ace", "sky", "ray", "fox", "neo", "eve", "ash"];
+  const num = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+  const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+  const username = `panda_${num}_${suffix}`;
   const avatarUrl = getDiscordAvatarUrl(discordUser.id, discordUser.avatar);
   
   user = await storage.createDiscordUser({

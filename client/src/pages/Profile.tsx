@@ -75,6 +75,7 @@ export default function Profile() {
   const [editBio, setEditBio] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isRegeneratingUsername, setIsRegeneratingUsername] = useState(false);
 
   const planType = (user?.planType || "free") as PlanType;
   const planInfo = PLAN_INFO[planType] || PLAN_INFO.free;
@@ -179,6 +180,26 @@ export default function Profile() {
     } else {
       toast({ title: "Error", description: error || "Failed to update bio", variant: "destructive" });
     }
+  };
+
+  const handleRegenerateUsername = async () => {
+    setIsRegeneratingUsername(true);
+    try {
+      const response = await fetch('/api/user/regenerate-username', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (response.ok && data.user) {
+        toast({ title: "Username Updated", description: `Your new handle is @${data.user.username}` });
+        window.location.reload();
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to regenerate username", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Failed to regenerate username", variant: "destructive" });
+    }
+    setIsRegeneratingUsername(false);
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -319,7 +340,17 @@ export default function Profile() {
               </div>
             )}
             
-            <p className="text-sm text-muted-foreground">@{user?.username}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">@{user?.username}</p>
+              <button 
+                onClick={handleRegenerateUsername}
+                disabled={isRegeneratingUsername}
+                className="text-xs text-purple-400 hover:text-purple-300 disabled:opacity-50"
+                data-testid="button-regenerate-username"
+              >
+                {isRegeneratingUsername ? <Loader2 className="w-3 h-3 animate-spin" /> : "🎲"}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
             
             {/* Bio */}

@@ -157,6 +157,27 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/user/regenerate-username", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const suffixes = ["ava", "max", "kai", "zoe", "leo", "ivy", "rex", "mia", "ace", "sky", "ray", "fox", "neo", "eve", "ash"];
+      const num = String(Math.floor(Math.random() * 99)).padStart(2, '0');
+      const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+      const newUsername = `panda_${num}_${suffix}`;
+
+      const user = await storage.updateUserProfile(userId, { username: newUsername });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Regenerate username error:", error);
+      res.status(500).json({ error: "Failed to regenerate username" });
+    }
+  });
+
   app.post("/api/user/fcm-token", requireAuth, async (req, res) => {
     try {
       const { fcmToken, enabled } = req.body;
