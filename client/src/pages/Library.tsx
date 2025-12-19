@@ -1,7 +1,8 @@
+import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Play, Pause, Loader2, Music2 } from "lucide-react";
 import { Link } from "wouter";
 import { usePlayer } from "@/lib/playerContext";
@@ -117,6 +118,9 @@ function TrackRow({ track, index }: { track: Track; index: number }) {
 }
 
 export default function Library() {
+  const queryClient = useQueryClient();
+  const [pollingTaskIds, setPollingTaskIds] = useState<Set<string>>(new Set());
+  
   const { data: tracks, isLoading, error } = useQuery<Track[]>({
     queryKey: ['/api/tracks'],
     queryFn: async () => {
@@ -128,6 +132,35 @@ export default function Library() {
 
   const successTracks = tracks?.filter(t => t.status === "SUCCESS") || [];
   const pendingTracks = tracks?.filter(t => t.status === "PENDING") || [];
+
+  const pollPendingTracks = useCallback(async () => {
+    if (pendingTracks.length === 0) return;
+    
+    for (const track of pendingTracks) {
+      if (pollingTaskIds.has(track.taskId)) continue;
+      
+      try {
+        const response = await fetch(`/api/task/${track.taskId}`);
+        const data = await response.json();
+        
+        if (data.status === "SUCCESS" || data.status?.includes("FAILED")) {
+          queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+          break;
+        }
+      } catch (error) {
+        console.error("Polling error for track:", track.taskId, error);
+      }
+    }
+  }, [pendingTracks, pollingTaskIds, queryClient]);
+
+  useEffect(() => {
+    if (pendingTracks.length === 0) return;
+    
+    pollPendingTracks();
+    const interval = setInterval(pollPendingTracks, 5000);
+    
+    return () => clearInterval(interval);
+  }, [pendingTracks.length, pollPendingTracks]);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
