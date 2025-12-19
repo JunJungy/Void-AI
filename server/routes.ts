@@ -183,7 +183,10 @@ export async function registerRoutes(
       const input = generateMusicSchema.parse(req.body);
       const userId = req.session.userId!;
 
-      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`;
+      const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0];
+      const baseUrl = replitDomain ? `https://${replitDomain}` : 'http://localhost:5000';
+      console.log("Using callback URL base:", baseUrl);
+      
       const requestBody: any = {
         prompt: input.customMode && input.lyrics ? input.lyrics : input.prompt,
         customMode: input.customMode,
@@ -191,6 +194,7 @@ export async function registerRoutes(
         model: input.model,
         callBackUrl: `${baseUrl}/api/music-callback`,
       };
+      console.log("Callback URL:", requestBody.callBackUrl);
 
       if (input.customMode) {
         requestBody.style = input.style || input.prompt;

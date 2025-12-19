@@ -34,8 +34,7 @@ export function Sidebar() {
           const isActive = location === item.href;
           
           return (
-            <Link key={item.href} href={item.href}>
-              <a className={cn(
+            <Link key={item.href} href={item.href} className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group",
                 isActive 
                   ? "bg-primary/10 text-primary font-medium" 
@@ -43,7 +42,6 @@ export function Sidebar() {
               )}>
                 <Icon className={cn("w-5 h-5", isActive ? "text-primary" : "group-hover:text-foreground")} />
                 <span>{item.label}</span>
-              </a>
             </Link>
           );
         })}
@@ -67,22 +65,17 @@ export function Sidebar() {
   const MobileNav = () => (
     <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-white/5 z-40 lg:hidden pb-safe">
       <div className="flex items-center justify-around px-2 py-2">
-        <Link href="/">
-          <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/" ? "text-white" : "text-muted-foreground")}>
+        <Link href="/" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/" ? "text-white" : "text-muted-foreground")}>
             <Home className={cn("w-6 h-6", location === "/" && "fill-current")} />
             <span className="text-[10px] font-medium">Home</span>
-          </a>
         </Link>
         
-        <Link href="/explore">
-          <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/explore" ? "text-white" : "text-muted-foreground")}>
+        <Link href="/explore" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/explore" ? "text-white" : "text-muted-foreground")}>
             <Compass className={cn("w-6 h-6", location === "/explore" && "fill-current")} />
             <span className="text-[10px] font-medium">Explore</span>
-          </a>
         </Link>
 
-        <Link href="/create">
-          <a className="flex flex-col items-center gap-1 min-w-[64px] -mt-6">
+        <Link href="/create" className="flex flex-col items-center gap-1 min-w-[64px] -mt-6">
             <div className={cn(
               "w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95",
               location === "/create" 
@@ -92,18 +85,14 @@ export function Sidebar() {
               <Music className="w-6 h-6 fill-current" />
             </div>
             <span className={cn("text-[10px] font-medium", location === "/create" ? "text-white" : "text-muted-foreground")}>Create</span>
-          </a>
         </Link>
 
-        <Link href="/library">
-          <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/library" ? "text-white" : "text-muted-foreground")}>
+        <Link href="/library" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/library" ? "text-white" : "text-muted-foreground")}>
             <Library className={cn("w-6 h-6", location === "/library" && "fill-current")} />
             <span className="text-[10px] font-medium">Library</span>
-          </a>
         </Link>
 
-        <Link href="/profile">
-          <a className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/profile" ? "text-white" : "text-muted-foreground")}>
+        <Link href="/profile" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/profile" ? "text-white" : "text-muted-foreground")}>
             <div className="w-6 h-6 rounded-full overflow-hidden border border-primary/30">
               <img 
                 src={user?.avatarUrl || generatePandaSvg("#8b5cf6")} 
@@ -112,7 +101,6 @@ export function Sidebar() {
               />
             </div>
             <span className="text-[10px] font-medium">Me</span>
-          </a>
         </Link>
       </div>
     </div>
