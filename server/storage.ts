@@ -14,6 +14,8 @@ export interface IStorage {
   updateUserPlan(id: string, planType: string): Promise<User | undefined>;
   updateUserCredits(id: string, credits: number): Promise<User | undefined>;
   updateUserFcmToken(id: string, fcmToken: string | null, enabled: boolean): Promise<User | undefined>;
+  deductCredits(id: string, amount: number): Promise<User | undefined>;
+  refreshUserCredits(id: string, credits: number): Promise<User | undefined>;
   
   createTrack(track: InsertTrack): Promise<Track>;
   getTrack(id: string): Promise<Track | undefined>;
@@ -73,7 +75,7 @@ export class DatabaseStorage implements IStorage {
       avatarUrl: userData.avatarUrl,
       discordId: userData.discordId,
       planType: "free",
-      credits: 10,
+      credits: 55,
     }).returning();
     return user;
   }
@@ -84,6 +86,19 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserFcmToken(id: string, fcmToken: string | null, enabled: boolean): Promise<User | undefined> {
     const [user] = await db.update(users).set({ fcmToken, pushNotificationsEnabled: enabled }).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  async deductCredits(id: string, amount: number): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+    const newCredits = Math.max(0, (user.credits || 0) - amount);
+    const [updated] = await db.update(users).set({ credits: newCredits }).where(eq(users.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async refreshUserCredits(id: string, credits: number): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ credits, lastCreditRefresh: new Date() }).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 

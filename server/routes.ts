@@ -183,6 +183,36 @@ export async function registerRoutes(
       const input = generateMusicSchema.parse(req.body);
       const userId = req.session.userId!;
 
+      // Get user and check/refresh credits
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if 24 hours passed, refresh credits
+      const PLAN_CREDITS: Record<string, number> = { free: 55, ruby: 2500, pro: 5000, diamond: 999999 };
+      const lastRefresh = user.lastCreditRefresh ? new Date(user.lastCreditRefresh) : new Date(0);
+      const hoursSinceRefresh = (Date.now() - lastRefresh.getTime()) / (1000 * 60 * 60);
+
+      if (hoursSinceRefresh >= 24) {
+        const planCredits = PLAN_CREDITS[user.planType || "free"] || 55;
+        await storage.refreshUserCredits(userId, planCredits);
+        user.credits = planCredits;
+      }
+
+      // Check if user has enough credits
+      const CREDITS_PER_SONG = 2;
+      if ((user.credits || 0) < CREDITS_PER_SONG) {
+        return res.status(403).json({ 
+          error: "Insufficient credits",
+          creditsRequired: CREDITS_PER_SONG,
+          creditsAvailable: user.credits || 0
+        });
+      }
+
+      // Deduct credits
+      await storage.deductCredits(userId, CREDITS_PER_SONG);
+
       const replitDomain = process.env.REPLIT_DOMAINS?.split(',')[0];
       const baseUrl = replitDomain ? `https://${replitDomain}` : 'http://localhost:5000';
       console.log("Using callback URL base:", baseUrl);
