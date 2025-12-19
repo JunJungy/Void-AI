@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Track, type InsertTrack, type UpdateProfile, users, tracks } from "@shared/schema";
+import { type User, type InsertUser, type Track, type InsertTrack, type UpdateProfile, type VideoJob, type InsertVideoJob, users, tracks, videoJobs } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -24,6 +24,13 @@ export interface IStorage {
   getTracksByUserId(userId: string): Promise<Track[]>;
   updateTrack(id: string, updates: Partial<Track>): Promise<Track | undefined>;
   updateTrackByTaskId(taskId: string, updates: Partial<Track>): Promise<Track | undefined>;
+  
+  createVideoJob(videoJob: InsertVideoJob): Promise<VideoJob>;
+  getVideoJob(id: string): Promise<VideoJob | undefined>;
+  getVideoJobByRunwayId(runwayJobId: string): Promise<VideoJob | undefined>;
+  getVideoJobsByUserId(userId: string): Promise<VideoJob[]>;
+  getVideoJobsByTrackId(trackId: string): Promise<VideoJob[]>;
+  updateVideoJob(id: string, updates: Partial<VideoJob>): Promise<VideoJob | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -133,6 +140,34 @@ export class DatabaseStorage implements IStorage {
   async updateTrackByTaskId(taskId: string, updates: Partial<Track>): Promise<Track | undefined> {
     const [track] = await db.update(tracks).set(updates).where(eq(tracks.taskId, taskId)).returning();
     return track || undefined;
+  }
+
+  async createVideoJob(videoJob: InsertVideoJob): Promise<VideoJob> {
+    const [job] = await db.insert(videoJobs).values(videoJob).returning();
+    return job;
+  }
+
+  async getVideoJob(id: string): Promise<VideoJob | undefined> {
+    const [job] = await db.select().from(videoJobs).where(eq(videoJobs.id, id));
+    return job || undefined;
+  }
+
+  async getVideoJobByRunwayId(runwayJobId: string): Promise<VideoJob | undefined> {
+    const [job] = await db.select().from(videoJobs).where(eq(videoJobs.runwayJobId, runwayJobId));
+    return job || undefined;
+  }
+
+  async getVideoJobsByUserId(userId: string): Promise<VideoJob[]> {
+    return db.select().from(videoJobs).where(eq(videoJobs.userId, userId)).orderBy(desc(videoJobs.createdAt));
+  }
+
+  async getVideoJobsByTrackId(trackId: string): Promise<VideoJob[]> {
+    return db.select().from(videoJobs).where(eq(videoJobs.trackId, trackId)).orderBy(desc(videoJobs.createdAt));
+  }
+
+  async updateVideoJob(id: string, updates: Partial<VideoJob>): Promise<VideoJob | undefined> {
+    const [job] = await db.update(videoJobs).set(updates).where(eq(videoJobs.id, id)).returning();
+    return job || undefined;
   }
 }
 
