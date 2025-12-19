@@ -42,6 +42,7 @@ function formatDate(dateString: string) {
 
 function TrackRow({ track, index }: { track: Track; index: number }) {
   const { currentTrack, isPlaying, playTrack } = usePlayer();
+  const [imageError, setImageError] = useState(false);
   
   const isCurrentTrack = currentTrack?.id === track.id;
   const isThisPlaying = isCurrentTrack && isPlaying;
@@ -58,7 +59,8 @@ function TrackRow({ track, index }: { track: Track; index: number }) {
     });
   };
 
-  const coverImage = track.imageUrl || DEFAULT_COVERS[index % 3];
+  const defaultCover = DEFAULT_COVERS[index % 3];
+  const coverImage = imageError ? defaultCover : (track.imageUrl || defaultCover);
 
   return (
     <div 
@@ -72,7 +74,8 @@ function TrackRow({ track, index }: { track: Track; index: number }) {
         <img 
           src={coverImage} 
           alt={track.title} 
-          className="w-full h-full object-cover" 
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
         />
         <div className={`absolute inset-0 bg-black/40 flex items-center justify-center ${isThisPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
           {track.status === "SUCCESS" && track.audioUrl ? (
