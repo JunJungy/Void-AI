@@ -50,11 +50,17 @@ export function Sidebar() {
       <div className="p-4 border-t border-border space-y-2">
         <div className="px-4 py-4">
           <div className="p-4 rounded-xl bg-gradient-to-br from-primary/20 to-purple-900/20 border border-primary/20">
-            <p className="text-xs font-medium text-primary mb-1">Pro Plan</p>
-            <p className="text-xs text-muted-foreground mb-3">500 credits remaining</p>
-            <button className="w-full py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
-              Upgrade
-            </button>
+            <p className="text-xs font-medium text-primary mb-1 capitalize">
+              {user?.planType || "Free"} Plan
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {user?.credits?.toLocaleString() || 0} credits remaining
+            </p>
+            {user?.planType !== "diamond" && (
+              <button className="w-full py-1.5 text-xs font-bold bg-primary text-primary-foreground rounded-md hover:opacity-90 transition-opacity">
+                Upgrade
+              </button>
+            )}
           </div>
         </div>
       </div>
