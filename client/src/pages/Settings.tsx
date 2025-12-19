@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { ArrowLeft, Bell, Volume2, Shield, Loader2, Ticket, Check, Gift } from "lucide-react";
+import { ArrowLeft, Bell, Volume2, Shield, Loader2, Ticket, Check, Gift, ChevronRight, Users } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -318,6 +318,23 @@ export default function Settings() {
               )}
             </div>
           </div>
+
+          {user?.isOwner && (
+            <Link href="/admin">
+              <div className="bg-card border border-purple-500/30 rounded-2xl overflow-hidden cursor-pointer hover:border-purple-500/50 transition-colors" data-testid="link-admin-panel">
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <h2 className="font-semibold text-purple-400">Admin Panel</h2>
+                      <p className="text-sm text-muted-foreground">Manage users and promo codes</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-purple-400" />
+                </div>
+              </div>
+            </Link>
+          )}
 
           <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-white/5">
