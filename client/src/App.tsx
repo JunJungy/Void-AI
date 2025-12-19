@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +7,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PlayerProvider } from "@/lib/playerContext";
 import { SubscriptionProvider } from "@/lib/subscriptionContext";
 import { AuthProvider } from "@/lib/authContext";
+import { HolidayEffects } from "@/components/HolidayEffects";
+import { detectHoliday } from "@/lib/holidays";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Create from "@/pages/Create";
@@ -37,12 +40,23 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    const holiday = detectHoliday();
+    if (holiday) {
+      document.documentElement.classList.add(`holiday-${holiday}`);
+    }
+    return () => {
+      document.documentElement.classList.remove('holiday-christmas', 'holiday-halloween');
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
           <SubscriptionProvider>
             <PlayerProvider>
+              <HolidayEffects />
               <Toaster />
               <Router />
             </PlayerProvider>
