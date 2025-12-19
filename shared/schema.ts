@@ -90,3 +90,35 @@ export const generateMusicSchema = z.object({
 });
 
 export type GenerateMusicInput = z.infer<typeof generateMusicSchema>;
+
+export const videoJobs = pgTable("video_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  trackId: varchar("track_id").references(() => tracks.id),
+  runwayJobId: text("runway_job_id"),
+  prompt: text("prompt").notNull(),
+  style: text("style"),
+  status: text("status").notNull().default("PENDING"),
+  videoUrl: text("video_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: integer("duration"),
+  creditsCost: integer("credits_cost").default(25),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertVideoJobSchema = createInsertSchema(videoJobs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVideoJob = z.infer<typeof insertVideoJobSchema>;
+export type VideoJob = typeof videoJobs.$inferSelect;
+
+export const generateVideoSchema = z.object({
+  trackId: z.string().min(1),
+  prompt: z.string().min(1).max(500),
+  style: z.enum(["animated", "cinematic", "abstract", "realistic", "artistic"]).optional(),
+});
+
+export type GenerateVideoInput = z.infer<typeof generateVideoSchema>;
