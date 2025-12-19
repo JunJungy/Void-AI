@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, PlusCircle, Library, Compass, Music, User } from "lucide-react";
+import { Home, PlusCircle, Library, Compass, Music, User, Shield } from "lucide-react";
 import logo from "@assets/generated_images/void_ai_minimalist_logo_symbol.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/authContext";
@@ -18,6 +18,7 @@ export function Sidebar() {
     { icon: Compass, label: "Explore", href: "/explore" },
     { icon: Library, label: "Library", href: "/library" },
     { icon: PlusCircle, label: "Create", href: "/create" },
+    ...(user?.isOwner ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
   ];
 
   // Desktop Sidebar

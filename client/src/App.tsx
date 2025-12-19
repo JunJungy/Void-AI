@@ -16,6 +16,7 @@ import Settings from "@/pages/Settings";
 import Billing from "@/pages/Billing";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
+import Admin from "@/pages/Admin";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/billing" component={Billing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );
