@@ -35,9 +35,9 @@ export async function createVideoGeneration(
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Runway API error:", error);
-      return { taskId: "", error: `Runway API error: ${response.status}` };
+      const errorText = await response.text();
+      console.error("Runway API error:", response.status, errorText);
+      return { taskId: "", error: `Runway API error: ${response.status} - ${errorText}` };
     }
 
     const data = await response.json();
