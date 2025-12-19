@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
+import { useAuth } from "@/lib/authContext";
 import cover1 from "@assets/generated_images/cyberpunk_city_neon_album_art.png";
 import cover2 from "@assets/generated_images/nebula_ethereal_album_art.png";
 import cover3 from "@assets/generated_images/digital_glitch_abstract_art.png";
@@ -63,7 +64,11 @@ export default function Create() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   const { currentPlan, setPlan, canAccessModel, getRequiredPlan } = useSubscription();
+  
+  const userPlan = (user?.planType as PlanType) || currentPlan;
+  const userCredits = user?.credits ?? 55;
 
   const handleModelSelect = (model: typeof AI_MODELS[0]) => {
     const requiredPlan = getRequiredPlan(model.plan);
@@ -275,7 +280,7 @@ export default function Create() {
           <div className="flex items-center justify-between gap-4">
              <div className="px-3 py-1.5 rounded-full bg-secondary/50 border border-white/5 text-sm font-medium flex items-center gap-2">
                <Music2 className="w-4 h-4" />
-               <span data-testid="text-credits">55</span>
+               <span data-testid="text-credits">{userCredits.toLocaleString()}</span>
              </div>
 
              <div className="flex bg-secondary/50 rounded-full p-1 border border-white/5">
@@ -358,11 +363,11 @@ export default function Create() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Your Plan:</span>
-                <span className={cn("text-sm font-bold", PLAN_COLORS[currentPlan])}>
-                  {currentPlan === "diamond" && <Diamond className="w-3 h-3 inline mr-1" />}
-                  {currentPlan === "pro" && <Crown className="w-3 h-3 inline mr-1" />}
-                  {currentPlan === "ruby" && <Gem className="w-3 h-3 inline mr-1" />}
-                  {PLAN_NAMES[currentPlan]}
+                <span className={cn("text-sm font-bold", PLAN_COLORS[userPlan])}>
+                  {userPlan === "diamond" && <Diamond className="w-3 h-3 inline mr-1" />}
+                  {userPlan === "pro" && <Crown className="w-3 h-3 inline mr-1" />}
+                  {userPlan === "ruby" && <Gem className="w-3 h-3 inline mr-1" />}
+                  {PLAN_NAMES[userPlan]}
                 </span>
               </div>
               <DropdownMenu>
