@@ -164,12 +164,13 @@ export async function registerRoutes(
 
       const input = generateMusicSchema.parse(req.body);
 
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000'}`;
       const requestBody: any = {
         prompt: input.customMode && input.lyrics ? input.lyrics : input.prompt,
         customMode: input.customMode,
         instrumental: input.instrumental,
         model: input.model,
-        callBackUrl: "https://example.com/callback",
+        callBackUrl: `${baseUrl}/api/music-callback`,
       };
 
       if (input.customMode) {
@@ -274,6 +275,37 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Task status error:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Callback endpoint for KIE API to notify when music generation completes
+  app.post("/api/music-callback", async (req, res) => {
+    try {
+      console.log("Music callback received:", JSON.stringify(req.body));
+      const data = req.body;
+      
+      if (data.taskId && data.status === "SUCCESS" && data.data?.sunoData?.[0]) {
+        const audioData = data.data.sunoData[0];
+        await storage.updateTrackByTaskId(data.taskId, {
+          title: audioData.title || undefined,
+          audioUrl: audioData.audioUrl,
+          imageUrl: audioData.imageUrl,
+          duration: Math.round(audioData.duration),
+          status: "SUCCESS",
+        });
+        console.log("Track updated via callback:", data.taskId);
+      } else if (data.taskId && (data.status?.includes("FAILED") || data.status?.includes("ERROR"))) {
+        await storage.updateTrackByTaskId(data.taskId, {
+          status: data.status,
+          errorMessage: data.errorMessage || "Generation failed",
+        });
+        console.log("Track failed via callback:", data.taskId);
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Music callback error:", error);
+      res.status(500).json({ error: "Callback processing failed" });
     }
   });
 
