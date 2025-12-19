@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle } from "lucide-react";
+import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -66,6 +67,17 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateCodeOpen, setIsCreateCodeOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  
+  // User action dialogs state
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [creditsDialogOpen, setCreditsDialogOpen] = useState(false);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("free");
+  const [creditAmount, setCreditAmount] = useState(50);
+  const [banReason, setBanReason] = useState("");
   
   const [newCode, setNewCode] = useState({
     code: "",
@@ -267,118 +279,267 @@ export default function Admin() {
                   {filteredUsers.map((u) => (
                     <Card key={u.id} className="bg-white/5 border-white/10" data-testid={`card-user-${u.id}`}>
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-white">{u.displayName || u.username}</span>
-                                {u.isOwner && <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">Owner</Badge>}
-                                {u.isBanned && <Badge variant="destructive" className="text-xs">Banned</Badge>}
-                              </div>
-                              <p className="text-sm text-muted-foreground">{u.email}</p>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                <span>Credits: {u.credits}</span>
-                                {u.planExpiresAt && (
-                                  <span>Expires: {format(new Date(u.planExpiresAt), "MMM d, yyyy")}</span>
-                                )}
-                              </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-white truncate">{u.displayName || u.username}</span>
+                              <Badge className={PLAN_COLORS[u.planType] || PLAN_COLORS.free}>
+                                {u.planType}
+                              </Badge>
+                              {u.isOwner && <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">Owner</Badge>}
+                              {u.isBanned && <Badge variant="destructive" className="text-xs">Banned</Badge>}
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">{u.email}</p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                              <span>Credits: {u.credits}</span>
+                              {u.planExpiresAt && (
+                                <span>Expires: {format(new Date(u.planExpiresAt), "MMM d, yyyy")}</span>
+                              )}
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-3">
-                            <Badge className={PLAN_COLORS[u.planType] || PLAN_COLORS.free}>
-                              {u.planType}
-                            </Badge>
-                            
-                            <Select
-                              value={u.planType}
-                              onValueChange={(value) => updateUserPlan.mutate({ userId: u.id, planType: value, durationDays: 30 })}
-                            >
-                              <SelectTrigger className="w-32 bg-white/5 border-white/10" data-testid={`select-plan-${u.id}`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="pro">Pro</SelectItem>
-                                <SelectItem value="ruby">Ruby</SelectItem>
-                                <SelectItem value="diamond">Diamond</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-white/5 border-white/10"
-                              onClick={() => updateUserPlan.mutate({ userId: u.id, planType: u.planType, credits: 50 })}
-                              data-testid={`button-add-credits-${u.id}`}
-                            >
-                              +50 Credits
-                            </Button>
-                            
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={u.isBanned ? "bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30" : "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"}
-                              onClick={() => banUser.mutate({ userId: u.id, isBanned: !u.isBanned })}
-                              disabled={u.id === user?.id}
-                              data-testid={`button-ban-${u.id}`}
-                            >
-                              <Ban className="w-4 h-4 mr-1" />
-                              {u.isBanned ? "Unban" : "Ban"}
-                            </Button>
-                            
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className={u.isOwner ? "bg-orange-500/20 border-orange-500/50 text-orange-400 hover:bg-orange-500/30" : "bg-purple-500/20 border-purple-500/50 text-purple-400 hover:bg-purple-500/30"}
-                              onClick={() => toggleUserAdmin.mutate({ userId: u.id, isOwner: !u.isOwner })}
-                              disabled={u.id === user?.id}
-                              data-testid={`button-admin-${u.id}`}
-                            >
-                              {u.isOwner ? <ShieldOff className="w-4 h-4 mr-1" /> : <Shield className="w-4 h-4 mr-1" />}
-                              {u.isOwner ? "Remove Admin" : "Make Admin"}
-                            </Button>
-                            
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"
-                                  disabled={u.id === user?.id}
-                                  data-testid={`button-delete-${u.id}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-background border-white/10">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="flex items-center gap-2">
-                                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                                    Delete User
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete <strong>{u.displayName || u.username}</strong>? This will permanently remove their account and all their data including tracks and videos.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-white/5 border-white/10">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => deleteUser.mutate(u.id)}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="shrink-0" data-testid={`button-actions-${u.id}`}>
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-background border-white/10">
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setSelectedPlan(u.planType); setPlanDialogOpen(true); }}
+                                data-testid={`menuitem-plan-${u.id}`}
+                              >
+                                <UserCog className="w-4 h-4 mr-2" />
+                                Change Plan
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setCreditAmount(50); setCreditsDialogOpen(true); }}
+                                data-testid={`menuitem-credits-${u.id}`}
+                              >
+                                <Coins className="w-4 h-4 mr-2" />
+                                Add Credits
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setBanReason(""); setBanDialogOpen(true); }}
+                                disabled={u.id === user?.id}
+                                className={u.isBanned ? "text-green-400" : "text-red-400"}
+                                data-testid={`menuitem-ban-${u.id}`}
+                              >
+                                <Ban className="w-4 h-4 mr-2" />
+                                {u.isBanned ? "Unban User" : "Ban User"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setAdminDialogOpen(true); }}
+                                disabled={u.id === user?.id}
+                                className={u.isOwner ? "text-orange-400" : "text-purple-400"}
+                                data-testid={`menuitem-admin-${u.id}`}
+                              >
+                                {u.isOwner ? <ShieldOff className="w-4 h-4 mr-2" /> : <Shield className="w-4 h-4 mr-2" />}
+                                {u.isOwner ? "Remove Admin" : "Make Admin"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setDeleteDialogOpen(true); }}
+                                disabled={u.id === user?.id}
+                                className="text-red-400"
+                                data-testid={`menuitem-delete-${u.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
+
+              {/* Change Plan Dialog */}
+              <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle>Change Plan</DialogTitle>
+                    <DialogDescription>
+                      Update plan for {selectedUser?.displayName || selectedUser?.username}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Plan</Label>
+                      <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                        <SelectTrigger className="bg-white/5 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="free">Free</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="ruby">Ruby</SelectItem>
+                          <SelectItem value="diamond">Diamond</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPlanDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser) {
+                          updateUserPlan.mutate({ userId: selectedUser.id, planType: selectedPlan, durationDays: 30 });
+                          setPlanDialogOpen(false);
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Save
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Add Credits Dialog */}
+              <Dialog open={creditsDialogOpen} onOpenChange={setCreditsDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle>Add Credits</DialogTitle>
+                    <DialogDescription>
+                      Add credits for {selectedUser?.displayName || selectedUser?.username}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Credit Amount</Label>
+                      <Input
+                        type="number"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(Number(e.target.value))}
+                        className="bg-white/5 border-white/10"
+                        min={1}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setCreditsDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser) {
+                          updateUserPlan.mutate({ userId: selectedUser.id, planType: selectedUser.planType, credits: creditAmount });
+                          setCreditsDialogOpen(false);
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      Add Credits
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Ban/Unban Dialog */}
+              <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Ban className="w-5 h-5 text-red-500" />
+                      {selectedUser?.isBanned ? "Unban User" : "Ban User"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {selectedUser?.isBanned 
+                        ? `Are you sure you want to unban ${selectedUser?.displayName || selectedUser?.username}?`
+                        : `Ban ${selectedUser?.displayName || selectedUser?.username} from the platform`}
+                    </DialogDescription>
+                  </DialogHeader>
+                  {!selectedUser?.isBanned && (
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Reason (optional)</Label>
+                        <Input
+                          value={banReason}
+                          onChange={(e) => setBanReason(e.target.value)}
+                          placeholder="Enter reason for ban..."
+                          className="bg-white/5 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setBanDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser) {
+                          banUser.mutate({ userId: selectedUser.id, isBanned: !selectedUser.isBanned });
+                          setBanDialogOpen(false);
+                        }
+                      }}
+                      className={selectedUser?.isBanned ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+                    >
+                      {selectedUser?.isBanned ? "Unban" : "Ban"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Toggle Admin Dialog */}
+              <Dialog open={adminDialogOpen} onOpenChange={setAdminDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      {selectedUser?.isOwner ? <ShieldOff className="w-5 h-5 text-orange-500" /> : <Shield className="w-5 h-5 text-purple-500" />}
+                      {selectedUser?.isOwner ? "Remove Admin" : "Make Admin"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {selectedUser?.isOwner 
+                        ? `Remove admin privileges from ${selectedUser?.displayName || selectedUser?.username}?`
+                        : `Grant admin privileges to ${selectedUser?.displayName || selectedUser?.username}?`}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAdminDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser) {
+                          toggleUserAdmin.mutate({ userId: selectedUser.id, isOwner: !selectedUser.isOwner });
+                          setAdminDialogOpen(false);
+                        }
+                      }}
+                      className={selectedUser?.isOwner ? "bg-orange-600 hover:bg-orange-700" : "bg-purple-600 hover:bg-purple-700"}
+                    >
+                      Confirm
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Delete User Dialog */}
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-red-500" />
+                      Delete User
+                    </DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete <strong>{selectedUser?.displayName || selectedUser?.username}</strong>? This will permanently remove their account and all their data including tracks and videos.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser) {
+                          deleteUser.mutate(selectedUser.id);
+                          setDeleteDialogOpen(false);
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             <TabsContent value="codes" className="space-y-4">
