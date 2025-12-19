@@ -222,11 +222,11 @@ export default function Admin() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       <Sidebar />
       
-      <main className="flex-1 overflow-auto pb-24 lg:ml-64">
-        <div className="p-6 max-w-6xl mx-auto">
+      <main className="lg:pl-64 pb-28 pt-8 px-6 md:px-12">
+        <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>
             <p className="text-muted-foreground">Manage users and promo codes</p>
