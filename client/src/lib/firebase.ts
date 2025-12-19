@@ -38,30 +38,46 @@ export function initializeFirebase() {
 
 export async function requestNotificationPermission(): Promise<string | null> {
   try {
+    console.log("Checking notification permission...");
+    const currentPermission = Notification.permission;
+    console.log("Current permission state:", currentPermission);
+    
+    if (currentPermission === "denied") {
+      console.log("Notifications are blocked by the browser");
+      return null;
+    }
+    
     const permission = await Notification.requestPermission();
+    console.log("Permission after request:", permission);
+    
     if (permission !== "granted") {
-      console.log("Notification permission denied");
+      console.log("Notification permission not granted");
       return null;
     }
 
+    console.log("Initializing Firebase...");
     const firebase = initializeFirebase();
     if (!firebase?.messaging) {
-      console.warn("Messaging not available");
+      console.warn("Firebase messaging not available - config may be missing");
       return null;
     }
+    console.log("Firebase initialized successfully");
 
+    console.log("Registering service worker...");
     const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    console.log("Service worker registered:", registration.scope);
     
+    console.log("Getting FCM token with VAPID key:", vapidKey ? "present" : "missing");
     const token = await getToken(firebase.messaging, {
       vapidKey,
       serviceWorkerRegistration: registration,
     });
 
     if (token) {
-      console.log("FCM Token obtained");
+      console.log("FCM Token obtained successfully");
       return token;
     } else {
-      console.log("No registration token available");
+      console.log("No registration token available - check VAPID key");
       return null;
     }
   } catch (error) {

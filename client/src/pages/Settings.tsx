@@ -58,12 +58,23 @@ export default function Settings() {
           return;
         }
 
+        const currentPermission = Notification.permission;
+        if (currentPermission === "denied") {
+          toast({ 
+            title: "Notifications Blocked", 
+            description: "Notifications are blocked. Please click the lock icon in your browser's address bar and allow notifications for this site.",
+            variant: "destructive"
+          });
+          setPushLoading(false);
+          return;
+        }
+
         const token = await requestNotificationPermission();
         
         if (!token) {
           toast({ 
-            title: "Permission Denied", 
-            description: "Please allow notifications in your browser settings.",
+            title: "Setup Failed", 
+            description: "Could not enable notifications. Check browser console for details.",
             variant: "destructive"
           });
           setPushLoading(false);
