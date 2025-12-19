@@ -45,3 +45,14 @@ waitForPort = 5000
 [agent]
 mockupState = "FULLSTACK"
 integrations = ["javascript_database:1.0.0", "stripe:2.0.0", "javascript_object_storage:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+VITE_FIREBASE_API_KEY = "AIzaSyCgFWXsWmGfyhK1_1xZ-HA8flK0h7F9P6w"
+VITE_FIREBASE_AUTH_DOMAIN = "notifier-a7971.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID = "notifier-a7971"
+VITE_FIREBASE_STORAGE_BUCKET = "notifier-a7971.firebasestorage.app"
+VITE_FIREBASE_MESSAGING_SENDER_ID = "1089940482816"
+VITE_FIREBASE_APP_ID = "1:1089940482816:web:b0f020aac6f4a2e95a21e5"
+VITE_FIREBASE_VAPID_KEY = "BPuPP9NGnijL8wXbpgSOQWtoxA9dkLC5cUwmgJo6cFMltbywokZ3JcZhKoUd1rh3BcoELKrkH0ue0Pkk0XzphQI"
