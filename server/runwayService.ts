@@ -30,7 +30,7 @@ export async function createVideoGeneration(
         promptImage: imageUrl,
         promptText: prompt,
         duration: duration,
-        ratio: "16:9",
+        ratio: "1280:768",
       }),
     });
 
