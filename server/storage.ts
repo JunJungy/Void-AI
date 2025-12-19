@@ -13,6 +13,7 @@ export interface IStorage {
   updateUserProfile(id: string, updates: UpdateProfile): Promise<User | undefined>;
   updateUserPlan(id: string, planType: string): Promise<User | undefined>;
   updateUserCredits(id: string, credits: number): Promise<User | undefined>;
+  updateUserFcmToken(id: string, fcmToken: string | null, enabled: boolean): Promise<User | undefined>;
   
   createTrack(track: InsertTrack): Promise<Track>;
   getTrack(id: string): Promise<Track | undefined>;
@@ -79,6 +80,11 @@ export class DatabaseStorage implements IStorage {
 
   async linkDiscordToUser(userId: string, discordId: string): Promise<void> {
     await db.update(users).set({ discordId }).where(eq(users.id, userId));
+  }
+
+  async updateUserFcmToken(id: string, fcmToken: string | null, enabled: boolean): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ fcmToken, pushNotificationsEnabled: enabled }).where(eq(users.id, id)).returning();
+    return user || undefined;
   }
 
   async createTrack(insertTrack: InsertTrack): Promise<Track> {

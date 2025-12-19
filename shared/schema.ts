@@ -16,6 +16,8 @@ export const users = pgTable("users", {
   isOwner: boolean("is_owner").default(false),
   discordId: text("discord_id").unique(),
   stripeCustomerId: text("stripe_customer_id"),
+  fcmToken: text("fcm_token"),
+  pushNotificationsEnabled: boolean("push_notifications_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
