@@ -225,7 +225,7 @@ export default function Admin() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       
-      <main className="flex-1 overflow-auto pb-24">
+      <main className="flex-1 overflow-auto pb-24 lg:ml-64">
         <div className="p-6 max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Admin Panel</h1>

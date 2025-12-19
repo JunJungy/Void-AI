@@ -444,25 +444,23 @@ export default function Profile() {
 
           {/* Menu Items */}
           <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
-            <Link href="/settings">
-              <a 
-                className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
-                data-testid="link-settings"
-              >
-                <Settings className="w-5 h-5 text-muted-foreground" />
-                <span className="flex-1 text-left">Settings</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </a>
+            <Link 
+              href="/settings"
+              className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
+              data-testid="link-settings"
+            >
+              <Settings className="w-5 h-5 text-muted-foreground" />
+              <span className="flex-1 text-left">Settings</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Link>
-            <Link href="/billing">
-              <a 
-                className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
-                data-testid="link-billing"
-              >
-                <CreditCard className="w-5 h-5 text-muted-foreground" />
-                <span className="flex-1 text-left">Billing</span>
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </a>
+            <Link 
+              href="/billing"
+              className="w-full flex items-center gap-4 p-4 hover:bg-secondary/30 transition-colors border-b border-white/5"
+              data-testid="link-billing"
+            >
+              <CreditCard className="w-5 h-5 text-muted-foreground" />
+              <span className="flex-1 text-left">Billing</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Link>
             <button 
               onClick={logout}
