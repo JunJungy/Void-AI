@@ -122,6 +122,16 @@
   --input: 25 40% 18%;
 }
 
+/* Preserve original icon colors in Admin panel during holidays */
+:root.holiday-christmas [data-testid^="tab-"] svg,
+:root.holiday-christmas [data-testid^="button-"] svg,
+:root.holiday-christmas [data-testid^="menuitem-"] svg,
+:root.holiday-halloween [data-testid^="tab-"] svg,
+:root.holiday-halloween [data-testid^="button-"] svg,
+:root.holiday-halloween [data-testid^="menuitem-"] svg {
+  color: inherit;
+}
+
 /* Falling animation for holiday effects */
 @keyframes fall {
   0% {
