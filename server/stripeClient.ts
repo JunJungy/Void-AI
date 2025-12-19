@@ -34,8 +34,9 @@ async function getCredentials() {
   
   connectionSettings = data.items?.[0];
 
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
-    throw new Error(`Stripe ${targetEnvironment} connection not found`);
+  if (!connectionSettings || (!connectionSettings.settings?.publishable || !connectionSettings.settings?.secret)) {
+    console.warn(`Stripe ${targetEnvironment} connection not configured - Stripe features will be disabled`);
+    return null;
   }
 
   return {
@@ -44,28 +45,44 @@ async function getCredentials() {
   };
 }
 
+export function isStripeConfigured(): boolean {
+  return connectionSettings !== null && connectionSettings !== undefined;
+}
+
 export async function getUncachableStripeClient() {
-  const { secretKey } = await getCredentials();
-  return new Stripe(secretKey);
+  const credentials = await getCredentials();
+  if (!credentials) {
+    throw new Error('Stripe is not configured');
+  }
+  return new Stripe(credentials.secretKey);
 }
 
 export async function getStripePublishableKey() {
-  const { publishableKey } = await getCredentials();
-  return publishableKey;
+  const credentials = await getCredentials();
+  if (!credentials) {
+    return null;
+  }
+  return credentials.publishableKey;
 }
 
 export async function getStripeSecretKey() {
-  const { secretKey } = await getCredentials();
-  return secretKey;
+  const credentials = await getCredentials();
+  if (!credentials) {
+    return null;
+  }
+  return credentials.secretKey;
 }
 
 let stripeSync: any = null;
 
 export async function getStripeSync() {
   if (!stripeSync) {
-    const { StripeSync } = await import('stripe-replit-sync');
     const secretKey = await getStripeSecretKey();
-
+    if (!secretKey) {
+      throw new Error('Stripe is not configured');
+    }
+    
+    const { StripeSync } = await import('stripe-replit-sync');
     stripeSync = new StripeSync({
       poolConfig: {
         connectionString: process.env.DATABASE_URL!,
