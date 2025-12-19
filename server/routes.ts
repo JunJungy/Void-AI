@@ -725,11 +725,15 @@ export async function registerRoutes(
   });
 
   const requireOwner = async (req: any, res: any, next: any) => {
-    const user = await getSessionUser(req);
-    if (!user) {
+    const userId = req.session?.userId;
+    if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    if (!user.isOwner) {
+    const freshUser = await storage.getUser(userId);
+    if (!freshUser) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    if (!freshUser.isOwner) {
       return res.status(403).json({ error: "Admin access required" });
     }
     next();

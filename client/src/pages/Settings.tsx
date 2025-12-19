@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { ArrowLeft, Bell, Volume2, Shield, Loader2 } from "lucide-react";
+import { ArrowLeft, Bell, Volume2, Shield, Loader2, Ticket, Check, Gift } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { requestNotificationPermission, disableNotifications, onForegroundMessage } from "@/lib/firebase";
 import { apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { format } from "date-fns";
 
 export default function Settings() {
   const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
@@ -20,6 +24,35 @@ export default function Settings() {
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [highQualityAudio, setHighQualityAudio] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
+  const [promoCode, setPromoCode] = useState("");
+  const [redeemSuccess, setRedeemSuccess] = useState<{ planType: string; expiresAt: string } | null>(null);
+
+  const redeemCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await apiRequest("POST", "/api/promo-codes/redeem", { code });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to redeem code");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setRedeemSuccess({ planType: data.planType, expiresAt: data.expiresAt });
+      setPromoCode("");
+      refreshUser?.();
+      toast({
+        title: "Code Redeemed!",
+        description: `You now have ${data.planType} plan until ${format(new Date(data.expiresAt), "MMM d, yyyy")}${data.bonusCredits > 0 ? ` + ${data.bonusCredits} bonus credits!` : ""}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Invalid Code",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (user?.pushNotificationsEnabled) {
@@ -280,6 +313,63 @@ export default function Settings() {
                   <div>
                     <p className="font-medium">Discord</p>
                     <p className="text-sm text-green-400">Connected</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-white/5">
+              <div className="flex items-center gap-3">
+                <Gift className="w-5 h-5 text-primary" />
+                <h2 className="font-semibold">Redeem Promo Code</h2>
+              </div>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {(user as any)?.planExpiresAt && (
+                <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                  <p className="text-sm text-purple-400">
+                    Your <span className="font-medium capitalize">{user?.planType}</span> plan expires on{" "}
+                    <span className="font-medium">{format(new Date((user as any).planExpiresAt), "MMMM d, yyyy")}</span>
+                  </p>
+                </div>
+              )}
+              
+              {redeemSuccess ? (
+                <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
+                  <Check className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="font-medium text-green-400">Code Redeemed Successfully!</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enjoy your {redeemSuccess.planType} plan until {format(new Date(redeemSuccess.expiresAt), "MMMM d, yyyy")}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Have a promo code? Enter it below to unlock premium features.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Enter code (e.g., VOID-XXXXX)"
+                      className="bg-white/5 border-white/10 font-mono"
+                      data-testid="input-promo-code"
+                    />
+                    <Button
+                      onClick={() => redeemCodeMutation.mutate(promoCode)}
+                      disabled={!promoCode || redeemCodeMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700"
+                      data-testid="button-redeem-code"
+                    >
+                      {redeemCodeMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Redeem"
+                      )}
+                    </Button>
                   </div>
                 </div>
               )}
