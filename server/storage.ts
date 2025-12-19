@@ -47,6 +47,9 @@ export interface IStorage {
   updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date): Promise<User | undefined>;
   addUserCredits(id: string, amount: number): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
+  banUser(id: string, isBanned: boolean): Promise<User | undefined>;
+  setUserOwner(id: string, isOwner: boolean): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -255,6 +258,23 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async banUser(id: string, isBanned: boolean): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ isBanned }).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  async setUserOwner(id: string, isOwner: boolean): Promise<User | undefined> {
+    const [user] = await db.update(users).set({ isOwner }).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(tracks).where(eq(tracks.userId, id));
+    await db.delete(videoJobs).where(eq(videoJobs.userId, id));
+    await db.delete(codeRedemptions).where(eq(codeRedemptions.userId, id));
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 

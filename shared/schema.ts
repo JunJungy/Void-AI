@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   credits: integer("credits").default(55),
   lastCreditRefresh: timestamp("last_credit_refresh").defaultNow(),
   isOwner: boolean("is_owner").default(false),
+  isBanned: boolean("is_banned").default(false),
   discordId: text("discord_id").unique(),
   stripeCustomerId: text("stripe_customer_id"),
   fcmToken: text("fcm_token"),

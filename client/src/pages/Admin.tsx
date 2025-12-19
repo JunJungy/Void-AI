@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check } from "lucide-react";
+import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 
@@ -26,6 +27,7 @@ interface AdminUser {
   planExpiresAt: string | null;
   credits: number;
   isOwner: boolean;
+  isBanned: boolean;
   createdAt: string;
 }
 
@@ -150,6 +152,47 @@ export default function Admin() {
     },
   });
 
+  const banUser = useMutation({
+    mutationFn: async ({ userId, isBanned }: { userId: string; isBanned: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/ban`, { isBanned });
+      return res.json();
+    },
+    onSuccess: (_, { isBanned }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: isBanned ? "User banned" : "User unbanned" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update ban status", variant: "destructive" });
+    },
+  });
+
+  const toggleUserAdmin = useMutation({
+    mutationFn: async ({ userId, isOwner }: { userId: string; isOwner: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/users/${userId}/owner`, { isOwner });
+      return res.json();
+    },
+    onSuccess: (_, { isOwner }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: isOwner ? "User is now an admin" : "Admin privileges removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update admin status", variant: "destructive" });
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/admin/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({ title: "User deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete user", variant: "destructive" });
+    },
+  });
+
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
@@ -230,6 +273,7 @@ export default function Admin() {
                               <div className="flex items-center gap-2">
                                 <span className="font-medium text-white">{u.displayName || u.username}</span>
                                 {u.isOwner && <Badge variant="outline" className="text-xs border-purple-500 text-purple-400">Owner</Badge>}
+                                {u.isBanned && <Badge variant="destructive" className="text-xs">Banned</Badge>}
                               </div>
                               <p className="text-sm text-muted-foreground">{u.email}</p>
                               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
@@ -270,6 +314,64 @@ export default function Admin() {
                             >
                               +50 Credits
                             </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={u.isBanned ? "bg-green-500/20 border-green-500/50 text-green-400 hover:bg-green-500/30" : "bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"}
+                              onClick={() => banUser.mutate({ userId: u.id, isBanned: !u.isBanned })}
+                              disabled={u.id === user?.id}
+                              data-testid={`button-ban-${u.id}`}
+                            >
+                              <Ban className="w-4 h-4 mr-1" />
+                              {u.isBanned ? "Unban" : "Ban"}
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={u.isOwner ? "bg-orange-500/20 border-orange-500/50 text-orange-400 hover:bg-orange-500/30" : "bg-purple-500/20 border-purple-500/50 text-purple-400 hover:bg-purple-500/30"}
+                              onClick={() => toggleUserAdmin.mutate({ userId: u.id, isOwner: !u.isOwner })}
+                              disabled={u.id === user?.id}
+                              data-testid={`button-admin-${u.id}`}
+                            >
+                              {u.isOwner ? <ShieldOff className="w-4 h-4 mr-1" /> : <Shield className="w-4 h-4 mr-1" />}
+                              {u.isOwner ? "Remove Admin" : "Make Admin"}
+                            </Button>
+                            
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30"
+                                  disabled={u.id === user?.id}
+                                  data-testid={`button-delete-${u.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-background border-white/10">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="flex items-center gap-2">
+                                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                                    Delete User
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete <strong>{u.displayName || u.username}</strong>? This will permanently remove their account and all their data including tracks and videos.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-white/5 border-white/10">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-red-600 hover:bg-red-700"
+                                    onClick={() => deleteUser.mutate(u.id)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       </CardContent>

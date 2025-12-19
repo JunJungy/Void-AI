@@ -780,6 +780,75 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/admin/users/:id/ban", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const { isBanned } = req.body;
+      const userId = req.params.id;
+      
+      if (userId === req.session.userId) {
+        return res.status(400).json({ error: "You cannot ban yourself" });
+      }
+      
+      const user = await storage.banUser(userId, isBanned);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Ban user error:", error);
+      res.status(500).json({ error: "Failed to update user ban status" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/owner", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const { isOwner } = req.body;
+      const userId = req.params.id;
+      
+      if (userId === req.session.userId) {
+        return res.status(400).json({ error: "You cannot change your own admin status" });
+      }
+      
+      const user = await storage.setUserOwner(userId, isOwner);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Set owner error:", error);
+      res.status(500).json({ error: "Failed to update user admin status" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      
+      if (userId === req.session.userId) {
+        return res.status(400).json({ error: "You cannot delete yourself" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      if (user.isOwner) {
+        return res.status(400).json({ error: "Cannot delete admin users" });
+      }
+      
+      await storage.deleteUser(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   app.get("/api/admin/promo-codes", requireAuth, requireOwner, async (req, res) => {
     try {
       const codes = await storage.getAllPromoCodes();
