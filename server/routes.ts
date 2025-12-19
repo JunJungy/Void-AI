@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { generateMusicSchema, signupSchema, loginSchema, updateProfileSchema, generateVideoSchema } from "@shared/schema";
+import { generateMusicSchema, signupSchema, loginSchema, updateProfileSchema, generateVideoSchema, createPromoCodeSchema, redeemCodeSchema } from "@shared/schema";
 import { z } from "zod";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
@@ -722,6 +722,182 @@ export async function registerRoutes(
       available: isRunwayConfigured(),
       creditCost: VIDEO_CREDIT_COST,
     });
+  });
+
+  const requireOwner = async (req: any, res: any, next: any) => {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    if (!user.isOwner) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  };
+
+  app.get("/api/admin/users", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const safeUsers = users.map(({ password, ...user }) => user);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get users error:", error);
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/plan", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const { planType, durationDays, credits } = req.body;
+      const userId = req.params.id;
+      
+      let user;
+      if (durationDays && durationDays > 0) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + durationDays);
+        user = await storage.updateUserPlanWithExpiry(userId, planType, expiresAt);
+      } else {
+        user = await storage.updateUserPlan(userId, planType);
+      }
+      
+      if (credits && credits > 0) {
+        user = await storage.addUserCredits(userId, credits);
+      }
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const { password, ...safeUser } = user;
+      res.json(safeUser);
+    } catch (error) {
+      console.error("Update user plan error:", error);
+      res.status(500).json({ error: "Failed to update user plan" });
+    }
+  });
+
+  app.get("/api/admin/promo-codes", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const codes = await storage.getAllPromoCodes();
+      res.json(codes);
+    } catch (error) {
+      console.error("Get promo codes error:", error);
+      res.status(500).json({ error: "Failed to get promo codes" });
+    }
+  });
+
+  app.post("/api/admin/promo-codes", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const data = createPromoCodeSchema.parse(req.body);
+      const existingCode = await storage.getPromoCodeByCode(data.code);
+      if (existingCode) {
+        return res.status(400).json({ error: "Code already exists" });
+      }
+      
+      const promoCode = await storage.createPromoCode({
+        code: data.code.toUpperCase(),
+        planType: data.planType,
+        durationDays: data.durationDays,
+        maxUses: data.maxUses,
+        bonusCredits: data.bonusCredits,
+        isActive: true,
+        expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
+        createdBy: req.session.userId!,
+      });
+      
+      res.json(promoCode);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Create promo code error:", error);
+      res.status(500).json({ error: "Failed to create promo code" });
+    }
+  });
+
+  app.patch("/api/admin/promo-codes/:id", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      const code = await storage.updatePromoCode(req.params.id, { isActive });
+      if (!code) {
+        return res.status(404).json({ error: "Promo code not found" });
+      }
+      res.json(code);
+    } catch (error) {
+      console.error("Update promo code error:", error);
+      res.status(500).json({ error: "Failed to update promo code" });
+    }
+  });
+
+  app.delete("/api/admin/promo-codes/:id", requireAuth, requireOwner, async (req, res) => {
+    try {
+      await storage.deletePromoCode(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete promo code error:", error);
+      res.status(500).json({ error: "Failed to delete promo code" });
+    }
+  });
+
+  app.post("/api/promo-codes/redeem", requireAuth, async (req, res) => {
+    try {
+      const { code } = redeemCodeSchema.parse(req.body);
+      const userId = req.session.userId!;
+      
+      const promoCode = await storage.getPromoCodeByCode(code.toUpperCase());
+      if (!promoCode) {
+        return res.status(404).json({ error: "Invalid promo code" });
+      }
+      
+      if (!promoCode.isActive) {
+        return res.status(400).json({ error: "This promo code is no longer active" });
+      }
+      
+      if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) {
+        return res.status(400).json({ error: "This promo code has expired" });
+      }
+      
+      if ((promoCode.currentUses || 0) >= (promoCode.maxUses || 1)) {
+        return res.status(400).json({ error: "This promo code has reached its usage limit" });
+      }
+      
+      const existingRedemption = await storage.getCodeRedemptionByUserAndCode(userId, promoCode.id);
+      if (existingRedemption) {
+        return res.status(400).json({ error: "You have already used this promo code" });
+      }
+      
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + promoCode.durationDays);
+      
+      await storage.updateUserPlanWithExpiry(userId, promoCode.planType, expiresAt);
+      
+      if (promoCode.bonusCredits && promoCode.bonusCredits > 0) {
+        await storage.addUserCredits(userId, promoCode.bonusCredits);
+      }
+      
+      await storage.createCodeRedemption({
+        userId,
+        promoCodeId: promoCode.id,
+      });
+      
+      await storage.incrementPromoCodeUses(promoCode.id);
+      
+      const updatedUser = await storage.getUser(userId);
+      
+      res.json({
+        success: true,
+        planType: promoCode.planType,
+        expiresAt,
+        bonusCredits: promoCode.bonusCredits || 0,
+        user: updatedUser ? { ...updatedUser, password: undefined } : null,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Redeem promo code error:", error);
+      res.status(500).json({ error: "Failed to redeem promo code" });
+    }
   });
 
   return httpServer;
