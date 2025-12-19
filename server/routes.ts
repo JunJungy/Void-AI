@@ -72,26 +72,6 @@ export async function registerRoutes(
     if (!user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
-    // Auto-fix owner account if needed
-    if (user.email === "jacobsewell31@gmail.com") {
-      const needsUpdate = user.username === "owner" || user.credits !== 999999 || user.planType !== "diamond";
-      if (needsUpdate) {
-        const suffixes = ["ava", "max", "kai", "zoe", "leo", "ivy", "rex", "mia", "ace", "sky"];
-        const num = String(Math.floor(Math.random() * 99)).padStart(2, '0');
-        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-        const newUsername = user.username === "owner" ? `panda_${num}_${suffix}` : user.username;
-        
-        const updatedUser = await storage.updateUserProfile(user.id, { username: newUsername });
-        if (updatedUser) {
-          await storage.updateUserCredits(user.id, 999999);
-          await storage.updateUserPlan(user.id, "diamond");
-          const { password: _, ...safeUser } = updatedUser;
-          return res.json({ user: { ...safeUser, credits: 999999, planType: "diamond" } });
-        }
-      }
-    }
-    
     res.json({ user });
   });
 
