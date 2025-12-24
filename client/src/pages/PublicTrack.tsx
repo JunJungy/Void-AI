@@ -31,13 +31,17 @@ export default function PublicTrack() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const trackId = params.id;
+
   const { data, isLoading, error } = useQuery<{ track: Track; creator: Creator | null }>({
-    queryKey: ["publicTrack", params.id],
+    queryKey: ["publicTrack", trackId],
     queryFn: async () => {
-      const res = await fetch(`/api/tracks/${params.id}/public`);
+      if (!trackId) throw new Error("No track ID provided");
+      const res = await fetch(`/api/tracks/${trackId}/public`);
       if (!res.ok) throw new Error("Track not found");
       return res.json();
     },
+    enabled: !!trackId,
   });
 
   const handleShare = async () => {

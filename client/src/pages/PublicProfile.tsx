@@ -26,13 +26,17 @@ export default function PublicProfile() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
+  const username = params.username;
+
   const { data, isLoading, error } = useQuery<{ user: PublicUser; tracks: Track[] }>({
-    queryKey: ["publicProfile", params.username],
+    queryKey: ["publicProfile", username],
     queryFn: async () => {
-      const res = await fetch(`/api/users/${params.username}`);
+      if (!username) throw new Error("No username provided");
+      const res = await fetch(`/api/users/${username}`);
       if (!res.ok) throw new Error("User not found");
       return res.json();
     },
+    enabled: !!username,
   });
 
   const handleShare = async () => {
