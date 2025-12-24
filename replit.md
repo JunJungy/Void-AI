@@ -94,3 +94,30 @@ Preferred communication style: Simple, everyday language.
 - `promo_codes`: Stores promo codes with usage tracking
 - `code_redemptions`: Tracks which users redeemed which codes
 - `users.planExpiresAt`: Tracks when time-limited plans expire
+
+## Android APK Build (Capacitor)
+
+### Configuration
+- **App ID**: `ai.void.music`
+- **App Name**: `Void AI`
+- **Build Tool**: Capacitor with Gradle
+- **Config File**: `capacitor.config.ts`
+
+### Building APKs
+
+#### Option A: Local Build (requires Android SDK + Java)
+1. Install Android SDK command-line tools and Java 17
+2. Run: `./scripts/build-android.sh` for debug APK
+3. Run: `./scripts/build-android.sh release` for release APK
+4. APK output: `android/app/build/outputs/apk/`
+
+#### Option B: Cloud Build (GitHub Actions)
+1. Push code to GitHub repository
+2. Go to Actions tab → "Build Android APK" workflow
+3. Click "Run workflow" or push to main branch
+4. Download APK artifacts when build completes
+
+### Important Notes
+- Before building, update `vite.config.ts` with `base: './'` for proper asset loading
+- Release APKs need signing for distribution (see Android keystore docs)
+- Debug APKs can be installed directly on Android devices for testing
