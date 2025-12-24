@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, PlusCircle, Library, Compass, Music, User, Shield, Wand2 } from "lucide-react";
+import { Home, PlusCircle, Library, Compass, Music, User, Shield } from "lucide-react";
 import logo from "@assets/generated_images/void_ai_minimalist_logo_symbol.png";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/authContext";
@@ -18,7 +18,6 @@ export function Sidebar() {
     { icon: Compass, label: "Explore", href: "/explore" },
     { icon: Library, label: "Library", href: "/library" },
     { icon: PlusCircle, label: "Create", href: "/create" },
-    { icon: Wand2, label: "Studio", href: "/studio" },
     ...(user?.isOwner ? [{ icon: Shield, label: "Admin", href: "/admin" }] : []),
   ];
 
@@ -95,9 +94,9 @@ export function Sidebar() {
             <span className={cn("text-[10px] font-medium", location === "/create" ? "text-white" : "text-muted-foreground")}>Create</span>
         </Link>
 
-        <Link href="/studio" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/studio" ? "text-white" : "text-muted-foreground")}>
-            <Wand2 className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Studio</span>
+        <Link href="/library" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/library" ? "text-white" : "text-muted-foreground")}>
+            <Library className={cn("w-6 h-6", location === "/library" && "fill-current")} />
+            <span className="text-[10px] font-medium">Library</span>
         </Link>
 
         <Link href="/profile" className={cn("flex flex-col items-center gap-1 p-2 min-w-[64px]", location === "/profile" ? "text-white" : "text-muted-foreground")}>
