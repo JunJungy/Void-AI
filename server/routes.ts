@@ -920,8 +920,15 @@ export async function registerRoutes(
 
   app.patch("/api/admin/promo-codes/:id", requireAuth, requireOwner, async (req, res) => {
     try {
-      const { isActive } = req.body;
-      const code = await storage.updatePromoCode(req.params.id, { isActive });
+      const { isActive, planType, durationDays, maxUses, bonusCredits } = req.body;
+      const updateData: any = {};
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (planType !== undefined) updateData.planType = planType;
+      if (durationDays !== undefined) updateData.durationDays = durationDays;
+      if (maxUses !== undefined) updateData.maxUses = maxUses;
+      if (bonusCredits !== undefined) updateData.bonusCredits = bonusCredits;
+      
+      const code = await storage.updatePromoCode(req.params.id, updateData);
       if (!code) {
         return res.status(404).json({ error: "Promo code not found" });
       }

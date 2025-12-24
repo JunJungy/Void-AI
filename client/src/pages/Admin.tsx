@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog } from "lucide-react";
+import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog, Pencil, Calendar, Hash } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -78,6 +78,18 @@ export default function Admin() {
   const [selectedPlan, setSelectedPlan] = useState("free");
   const [creditAmount, setCreditAmount] = useState(50);
   const [banReason, setBanReason] = useState("");
+  
+  // Promo code action dialogs state
+  const [selectedCode, setSelectedCode] = useState<PromoCode | null>(null);
+  const [editCodeDialogOpen, setEditCodeDialogOpen] = useState(false);
+  const [deleteCodeDialogOpen, setDeleteCodeDialogOpen] = useState(false);
+  const [editCodeData, setEditCodeData] = useState({
+    planType: "pro",
+    durationDays: 30,
+    maxUses: 1,
+    bonusCredits: 0,
+    isActive: true,
+  });
   
   const [newCode, setNewCode] = useState({
     code: "",
@@ -163,6 +175,38 @@ export default function Admin() {
       toast({ title: "Promo code deleted" });
     },
   });
+
+  const updatePromoCode = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof editCodeData> }) => {
+      const res = await apiRequest("PATCH", `/api/admin/promo-codes/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/promo-codes"] });
+      toast({ title: "Promo code updated" });
+      setEditCodeDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update promo code", variant: "destructive" });
+    },
+  });
+
+  const openEditCodeDialog = (code: PromoCode) => {
+    setSelectedCode(code);
+    setEditCodeData({
+      planType: code.planType,
+      durationDays: code.durationDays,
+      maxUses: code.maxUses,
+      bonusCredits: code.bonusCredits,
+      isActive: code.isActive,
+    });
+    setEditCodeDialogOpen(true);
+  };
+
+  const openDeleteCodeDialog = (code: PromoCode) => {
+    setSelectedCode(code);
+    setDeleteCodeDialogOpen(true);
+  };
 
   const banUser = useMutation({
     mutationFn: async ({ userId, isBanned }: { userId: string; isBanned: boolean }) => {
@@ -670,7 +714,7 @@ export default function Admin() {
                               </Button>
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Badge className={PLAN_COLORS[code.planType]}>
                                   {code.planType}
                                 </Badge>
@@ -682,6 +726,9 @@ export default function Admin() {
                                     +{code.bonusCredits} credits
                                   </span>
                                 )}
+                                <Badge variant={code.isActive ? "default" : "secondary"} className={code.isActive ? "bg-green-500/20 text-green-400" : ""}>
+                                  {code.isActive ? "Active" : "Inactive"}
+                                </Badge>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
                                 Uses: {code.currentUses}/{code.maxUses} • Created: {format(new Date(code.createdAt), "MMM d, yyyy")}
@@ -689,40 +736,191 @@ export default function Admin() {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            <Badge variant={code.isActive ? "default" : "secondary"} className={code.isActive ? "bg-green-500/20 text-green-400" : ""}>
-                              {code.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => togglePromoCode.mutate({ id: code.id, isActive: !code.isActive })}
-                              data-testid={`button-toggle-${code.id}`}
-                            >
-                              {code.isActive ? (
-                                <ToggleRight className="w-5 h-5 text-green-400" />
-                              ) : (
-                                <ToggleLeft className="w-5 h-5 text-muted-foreground" />
-                              )}
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deletePromoCode.mutate(code.id)}
-                              className="text-red-400 hover:text-red-300"
-                              data-testid={`button-delete-${code.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-code-menu-${code.id}`}>
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-background border-white/10">
+                              <DropdownMenuItem onClick={() => copyCode(code.code)} className="gap-2">
+                                <Copy className="w-4 h-4 text-blue-400" />
+                                Copy Code
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditCodeDialog(code)} className="gap-2">
+                                <Pencil className="w-4 h-4 text-purple-400" />
+                                Edit Code
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-white/10" />
+                              <DropdownMenuItem 
+                                onClick={() => togglePromoCode.mutate({ id: code.id, isActive: !code.isActive })}
+                                className="gap-2"
+                              >
+                                {code.isActive ? (
+                                  <>
+                                    <ToggleLeft className="w-4 h-4 text-yellow-400" />
+                                    Deactivate
+                                  </>
+                                ) : (
+                                  <>
+                                    <ToggleRight className="w-4 h-4 text-green-400" />
+                                    Activate
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator className="bg-white/10" />
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteCodeDialog(code)}
+                                className="gap-2 text-red-400 focus:text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Code
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
+
+              {/* Edit Code Dialog */}
+              <Dialog open={editCodeDialogOpen} onOpenChange={setEditCodeDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle>Edit Promo Code</DialogTitle>
+                    <DialogDescription>
+                      Update settings for code: <code className="bg-white/10 px-2 py-1 rounded">{selectedCode?.code}</code>
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Crown className="w-4 h-4 text-purple-400" />
+                        Plan Type
+                      </Label>
+                      <Select value={editCodeData.planType} onValueChange={(v) => setEditCodeData({ ...editCodeData, planType: v })}>
+                        <SelectTrigger className="bg-white/5 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="ruby">Ruby</SelectItem>
+                          <SelectItem value="diamond">Diamond</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-blue-400" />
+                          Duration (days)
+                        </Label>
+                        <Input
+                          type="number"
+                          value={editCodeData.durationDays}
+                          onChange={(e) => setEditCodeData({ ...editCodeData, durationDays: parseInt(e.target.value) || 30 })}
+                          className="bg-white/5 border-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Hash className="w-4 h-4 text-orange-400" />
+                          Max Uses
+                        </Label>
+                        <Input
+                          type="number"
+                          value={editCodeData.maxUses}
+                          onChange={(e) => setEditCodeData({ ...editCodeData, maxUses: parseInt(e.target.value) || 1 })}
+                          className="bg-white/5 border-white/10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Coins className="w-4 h-4 text-green-400" />
+                        Bonus Credits
+                      </Label>
+                      <Input
+                        type="number"
+                        value={editCodeData.bonusCredits}
+                        onChange={(e) => setEditCodeData({ ...editCodeData, bonusCredits: parseInt(e.target.value) || 0 })}
+                        className="bg-white/5 border-white/10"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                      <Label className="flex items-center gap-2">
+                        {editCodeData.isActive ? (
+                          <ToggleRight className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <ToggleLeft className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        Status
+                      </Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditCodeData({ ...editCodeData, isActive: !editCodeData.isActive })}
+                        className={editCodeData.isActive ? "bg-green-500/20 border-green-500/30 text-green-400" : "bg-white/5 border-white/10"}
+                      >
+                        {editCodeData.isActive ? "Active" : "Inactive"}
+                      </Button>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditCodeDialogOpen(false)} className="bg-white/5 border-white/10">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedCode) {
+                          updatePromoCode.mutate({ id: selectedCode.id, data: editCodeData });
+                        }
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                      disabled={updatePromoCode.isPending}
+                    >
+                      {updatePromoCode.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Delete Code Confirmation */}
+              <Dialog open={deleteCodeDialogOpen} onOpenChange={setDeleteCodeDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-400">
+                      <AlertTriangle className="w-5 h-5" />
+                      Delete Promo Code
+                    </DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete the code <code className="bg-white/10 px-2 py-1 rounded">{selectedCode?.code}</code>? 
+                      This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteCodeDialogOpen(false)} className="bg-white/5 border-white/10">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedCode) {
+                          deletePromoCode.mutate(selectedCode.id);
+                          setDeleteCodeDialogOpen(false);
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           </Tabs>
         </div>
