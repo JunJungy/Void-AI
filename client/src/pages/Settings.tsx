@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
 import { ArrowLeft, Bell, Volume2, Shield, Loader2, Ticket, Check, Gift, ChevronRight, Users } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
+import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +17,7 @@ import { format } from "date-fns";
 
 export default function Settings() {
   const { user, isAuthenticated, isLoading: authLoading, refreshUser } = useAuth();
+  const { setPlan } = useSubscription();
   const { toast } = useToast();
   
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -39,6 +41,7 @@ export default function Settings() {
     onSuccess: (data) => {
       setRedeemSuccess({ planType: data.planType, expiresAt: data.expiresAt });
       setPromoCode("");
+      setPlan(data.planType as PlanType);
       refreshUser?.();
       toast({
         title: "Code Redeemed!",

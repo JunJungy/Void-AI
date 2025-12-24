@@ -26,8 +26,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const canAccessModel = (modelPlan: string): boolean => {
     if (currentPlan === "diamond") return true;
     if (modelPlan === "free") return true;
+    if (currentPlan === "pro" && (modelPlan === "pro" || modelPlan === "ruby")) return true;
     if (currentPlan === "ruby" && modelPlan === "ruby") return true;
-    if (currentPlan === "pro" && modelPlan === "pro") return true;
     return false;
   };
 
