@@ -64,6 +64,11 @@ export function Sidebar() {
             )}
           </div>
         </div>
+        <div className="px-4 pb-2 flex flex-wrap gap-x-3 gap-y-1 justify-center">
+          <Link href="/privacy" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+          <Link href="/terms" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+          <Link href="/refund" className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">Refunds</Link>
+        </div>
       </div>
     </div>
   );
