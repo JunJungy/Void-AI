@@ -23,6 +23,9 @@ import Admin from "@/pages/Admin";
 import Studio from "@/pages/Studio";
 import PublicProfile from "@/pages/PublicProfile";
 import PublicTrack from "@/pages/PublicTrack";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import RefundPolicy from "@/pages/RefundPolicy";
 
 function Router() {
   return (
@@ -40,6 +43,9 @@ function Router() {
       <Route path="/studio" component={Studio} />
       <Route path="/u/:username" component={PublicProfile} />
       <Route path="/track/:id" component={PublicTrack} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfService} />
+      <Route path="/refund" component={RefundPolicy} />
       <Route component={NotFound} />
     </Switch>
   );
