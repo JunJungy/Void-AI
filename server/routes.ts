@@ -69,10 +69,19 @@ export async function registerRoutes(
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    const user = await getSessionUser(req);
+    let user = await getSessionUser(req);
     if (!user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
+    
+    if (user.planExpiresAt && new Date(user.planExpiresAt) < new Date() && user.planType !== "free") {
+      await storage.updateUserPlan(user.id, "free");
+      const updatedUser = await storage.getUser(user.id);
+      if (updatedUser) {
+        user = { ...updatedUser, password: undefined } as typeof user;
+      }
+    }
+    
     res.json({ user });
   });
 
