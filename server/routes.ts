@@ -499,9 +499,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tracks", async (_req, res) => {
+  app.get("/api/tracks", requireAuth, async (req, res) => {
     try {
-      const tracks = await storage.getAllTracks();
+      const userId = req.session.userId!;
+      const tracks = await storage.getTracksByUserId(userId);
       res.json(tracks);
     } catch (error) {
       console.error("Get tracks error:", error);
@@ -509,11 +510,15 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tracks/:id", async (req, res) => {
+  app.get("/api/tracks/:id", requireAuth, async (req, res) => {
     try {
+      const userId = req.session.userId!;
       const track = await storage.getTrack(req.params.id);
       if (!track) {
         return res.status(404).json({ error: "Track not found" });
+      }
+      if (track.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
       }
       res.json(track);
     } catch (error) {
