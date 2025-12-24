@@ -41,6 +41,10 @@ export function Player({ className }: PlayerProps) {
     setVolume(value[0] / 100);
   };
 
+  if (!currentTrack) {
+    return null;
+  }
+
   return (
     <div className={cn(
       "h-16 md:h-24 bg-card/95 backdrop-blur-xl border-t border-border fixed left-0 right-0 z-30 px-4 md:px-6 py-2 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-0 transition-all duration-300",

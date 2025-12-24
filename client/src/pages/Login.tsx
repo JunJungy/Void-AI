@@ -169,6 +169,12 @@ export default function Login() {
             Create one
           </Link>
         </p>
+
+        <div className="flex justify-center gap-4 pt-4 text-xs text-muted-foreground">
+          <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+          <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+          <Link href="/refund" className="hover:text-foreground transition-colors">Refunds</Link>
+        </div>
       </div>
     </div>
   );
