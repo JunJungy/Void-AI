@@ -204,10 +204,8 @@ export default function Billing() {
       <main className="lg:pl-64 pb-28 pt-8 px-6 md:px-12">
         <div className="max-w-lg mx-auto space-y-6">
           <div className="flex items-center gap-4 mb-6">
-            <Link href="/profile">
-              <a className="p-2 hover:bg-secondary/50 rounded-lg transition-colors" data-testid="button-back">
-                <ArrowLeft className="w-5 h-5" />
-              </a>
+            <Link href="/profile" className="p-2 hover:bg-secondary/50 rounded-lg transition-colors" data-testid="button-back">
+              <ArrowLeft className="w-5 h-5" />
             </Link>
             <h1 className="text-2xl font-bold">Billing</h1>
           </div>
