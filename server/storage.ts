@@ -11,7 +11,7 @@ export interface IStorage {
   createDiscordUser(user: { email: string; username: string; displayName: string; avatarUrl: string; discordId: string }): Promise<User>;
   linkDiscordToUser(userId: string, discordId: string): Promise<void>;
   updateUserProfile(id: string, updates: UpdateProfile): Promise<User | undefined>;
-  updateUserPlan(id: string, planType: string): Promise<User | undefined>;
+  updateUserPlan(id: string, planType: string, clearExpiration?: boolean): Promise<User | undefined>;
   updateUserCredits(id: string, credits: number): Promise<User | undefined>;
   updateUserFcmToken(id: string, fcmToken: string | null, enabled: boolean): Promise<User | undefined>;
   deductCredits(id: string, amount: number): Promise<User | undefined>;
@@ -78,8 +78,13 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async updateUserPlan(id: string, planType: string): Promise<User | undefined> {
-    const [user] = await db.update(users).set({ planType }).where(eq(users.id, id)).returning();
+  async updateUserPlan(id: string, planType: string, clearExpiration: boolean = false): Promise<User | undefined> {
+    const updateData: any = { planType };
+    if (clearExpiration) {
+      updateData.planExpiresAt = null;
+      updateData.previousPlanType = null;
+    }
+    const [user] = await db.update(users).set(updateData).where(eq(users.id, id)).returning();
     return user || undefined;
   }
 

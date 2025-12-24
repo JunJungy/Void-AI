@@ -809,7 +809,7 @@ export async function registerRoutes(
         expiresAt.setDate(expiresAt.getDate() + durationDays);
         user = await storage.updateUserPlanWithExpiry(userId, planType, expiresAt);
       } else {
-        user = await storage.updateUserPlan(userId, planType);
+        user = await storage.updateUserPlan(userId, planType, true);
       }
       
       if (credits && credits > 0) {
