@@ -397,13 +397,25 @@ export default function Create() {
 
               {/* Style Section */}
               <div className="bg-card border border-white/5 rounded-2xl p-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-white/90 mb-3">
-                   <ChevronDown className="w-4 h-4" />
-                   Styles
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                     <ChevronDown className="w-4 h-4" />
+                     Styles
+                  </div>
+                  <span className={cn(
+                    "text-xs",
+                    prompt.length > 10000 ? "text-red-400" : "text-muted-foreground"
+                  )}>
+                    {prompt.length.toLocaleString()}/10,000
+                  </span>
                 </div>
                 <textarea 
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 10000) {
+                      setPrompt(e.target.value);
+                    }
+                  }}
                   data-testid="input-style"
                   placeholder="dungeon, turkish classical, bongo, frustration, electric"
                   className="w-full bg-transparent border-none text-foreground placeholder:text-muted-foreground/40 focus:outline-none resize-none text-base h-20 mb-4"
