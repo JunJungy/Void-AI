@@ -66,13 +66,13 @@ export default function Create() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { currentPlan, setPlan, canAccessModel, getRequiredPlan } = useSubscription();
+  const { currentPlan, setPlan, canAccessModelWithPlan, getRequiredPlanForUser } = useSubscription();
   
   const userPlan = (user?.planType as PlanType) || currentPlan;
   const userCredits = user?.credits ?? 55;
 
   const handleModelSelect = (model: typeof AI_MODELS[0]) => {
-    const requiredPlan = getRequiredPlan(model.plan);
+    const requiredPlan = getRequiredPlanForUser(model.plan, userPlan);
     
     if (requiredPlan) {
       const planName = requiredPlan === "ruby" ? "Ruby" : "Pro";
@@ -310,7 +310,7 @@ export default function Create() {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-72 bg-card border border-white/10 p-2 rounded-xl shadow-xl max-h-[400px] overflow-y-auto z-50">
                 {AI_MODELS.map((model) => {
-                  const hasAccess = canAccessModel(model.plan);
+                  const hasAccess = canAccessModelWithPlan(model.plan, userPlan);
                   return (
                     <DropdownMenuItem
                       key={model.id}
