@@ -225,7 +225,6 @@ export async function registerRoutes(
         model: input.model,
         callBackUrl: `${baseUrl}/api/music-callback`,
       };
-      console.log("Callback URL:", requestBody.callBackUrl);
 
       if (input.customMode) {
         requestBody.style = input.style || input.prompt;
@@ -234,6 +233,15 @@ export async function registerRoutes(
           requestBody.vocalGender = input.vocalGender;
         }
       }
+      
+      // Debug logging to verify lyrics are being sent correctly
+      console.log("=== KIE API Request Debug ===");
+      console.log("customMode:", input.customMode);
+      console.log("lyrics provided:", !!input.lyrics, "length:", input.lyrics?.length || 0);
+      console.log("instrumental:", input.instrumental);
+      console.log("prompt being sent (first 100 chars):", requestBody.prompt?.substring(0, 100));
+      console.log("style:", requestBody.style);
+      console.log("=== End Debug ===");
 
       const response = await fetch(`${KIE_API_BASE}/generate`, {
         method: "POST",
