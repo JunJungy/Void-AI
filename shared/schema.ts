@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url").default("https://cdn-icons-png.flaticon.com/512/2977/2977485.png"),
   bio: text("bio"),
   planType: text("plan_type").default("free"),
+  previousPlanType: text("previous_plan_type"),
   planExpiresAt: timestamp("plan_expires_at"),
   credits: integer("credits").default(55),
   lastCreditRefresh: timestamp("last_credit_refresh").defaultNow(),

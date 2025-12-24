@@ -75,7 +75,8 @@ export async function registerRoutes(
     }
     
     if (user.planExpiresAt && new Date(user.planExpiresAt) < new Date() && user.planType !== "free") {
-      await storage.updateUserPlan(user.id, "free");
+      const revertToPlan = user.previousPlanType || "free";
+      await storage.updateUserPlan(user.id, revertToPlan);
       const updatedUser = await storage.getUser(user.id);
       if (updatedUser) {
         user = { ...updatedUser, password: undefined } as typeof user;
@@ -993,10 +994,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "You have already used this promo code" });
       }
       
+      const currentUser = await storage.getUser(userId);
+      const previousPlanType = currentUser?.planType || "free";
+      
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + promoCode.durationDays);
       
-      await storage.updateUserPlanWithExpiry(userId, promoCode.planType, expiresAt);
+      await storage.updateUserPlanWithExpiry(userId, promoCode.planType, expiresAt, previousPlanType);
       
       if (promoCode.bonusCredits && promoCode.bonusCredits > 0) {
         await storage.addUserCredits(userId, promoCode.bonusCredits);

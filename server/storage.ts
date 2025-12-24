@@ -44,7 +44,7 @@ export interface IStorage {
   getCodeRedemptionByUserAndCode(userId: string, promoCodeId: string): Promise<CodeRedemption | undefined>;
   getRedemptionsByUserId(userId: string): Promise<CodeRedemption[]>;
   
-  updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date): Promise<User | undefined>;
+  updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date, previousPlanType?: string): Promise<User | undefined>;
   addUserCredits(id: string, amount: number): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   banUser(id: string, isBanned: boolean): Promise<User | undefined>;
@@ -240,9 +240,9 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(codeRedemptions).where(eq(codeRedemptions.userId, userId));
   }
 
-  async updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date): Promise<User | undefined> {
+  async updateUserPlanWithExpiry(id: string, planType: string, expiresAt: Date, previousPlanType?: string): Promise<User | undefined> {
     const [user] = await db.update(users)
-      .set({ planType, planExpiresAt: expiresAt })
+      .set({ planType, planExpiresAt: expiresAt, previousPlanType: previousPlanType || null })
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
