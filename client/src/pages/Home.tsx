@@ -1,9 +1,9 @@
-import { useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
 import { TRENDING_TRACKS } from "@/lib/data";
 import { TrackCard } from "@/components/TrackCard";
 import { Play } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Home() {
   return (
@@ -17,9 +17,9 @@ export default function Home() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-rose-500 flex items-center justify-center font-bold text-white">V</div>
               <span className="font-display font-bold text-xl">VOID</span>
            </div>
-           <button className="px-4 py-1.5 bg-white text-black rounded-full text-xs font-bold">
+           <Link href="/profile" className="px-4 py-1.5 bg-white text-black rounded-full text-xs font-bold" data-testid="link-subscribe">
              Subscribe
-           </button>
+           </Link>
         </div>
 
         {/* Hero Section - Desktop Only */}
