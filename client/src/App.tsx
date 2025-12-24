@@ -52,7 +52,8 @@ function App() {
         'holiday-thanksgiving',
         'holiday-valentines',
         'holiday-newyear',
-        'holiday-july4th'
+        'holiday-july4th',
+        'holiday-stpatricks'
       );
     };
   }, []);

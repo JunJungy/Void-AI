@@ -16,6 +16,7 @@ const HOLIDAY_EMOJIS: Record<Exclude<Holiday, null>, string> = {
   valentines: '💕',
   newyear: '✨',
   july4th: '🎆',
+  stpatricks: '☘',
 };
 
 const HOLIDAY_OPACITY: Record<Exclude<Holiday, null>, string> = {
@@ -25,6 +26,7 @@ const HOLIDAY_OPACITY: Record<Exclude<Holiday, null>, string> = {
   valentines: 'text-pink-400/40',
   newyear: 'text-yellow-400/40',
   july4th: 'text-white/30',
+  stpatricks: 'text-green-400/40',
 };
 
 function FallingParticle({ particle, holiday }: { particle: Particle; holiday: Exclude<Holiday, null> }) {

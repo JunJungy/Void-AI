@@ -1,4 +1,4 @@
-export type Holiday = 'christmas' | 'halloween' | 'thanksgiving' | 'valentines' | 'newyear' | 'july4th' | null;
+export type Holiday = 'christmas' | 'halloween' | 'thanksgiving' | 'valentines' | 'newyear' | 'july4th' | 'stpatricks' | null;
 
 function getThanksgivingDate(year: number): number {
   // Thanksgiving is the 4th Thursday of November
@@ -22,6 +22,11 @@ export function detectHoliday(): Holiday {
   // Valentine's Day: February 12 - 15
   if (month === 1 && day >= 12 && day <= 15) {
     return 'valentines';
+  }
+
+  // St. Patrick's Day: March 15 - 18
+  if (month === 2 && day >= 15 && day <= 18) {
+    return 'stpatricks';
   }
 
   // 4th of July: July 2 - 5
@@ -84,5 +89,11 @@ export const holidayThemes = {
     text: 'text-red-400',
     accent: 'text-white',
     border: 'border-blue-900/50',
+  },
+  stpatricks: {
+    background: 'bg-green-950',
+    text: 'text-green-400',
+    accent: 'text-green-500',
+    border: 'border-green-900/50',
   },
 } as const;
