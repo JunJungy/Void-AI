@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { Sidebar } from "@/components/Sidebar";
-import { Player } from "@/components/Player";
-import { Share2, Copy, Check, Play, Pause, User, Calendar, Music } from "lucide-react";
+import { Share2, Copy, Check, Play, Pause, User, Calendar, Music, Home } from "lucide-react";
 import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -82,8 +80,26 @@ export default function PublicTrack() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="lg:pl-64 pb-32">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-white/5">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
+              <Music className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold">Void AI</span>
+          </Link>
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+            data-testid="button-try-void"
+          >
+            <Home className="w-4 h-4" />
+            Try Void AI
+          </Link>
+        </div>
+      </header>
+
+      <main className="pb-16">
         <div className="max-w-3xl mx-auto px-4 py-8">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
@@ -193,7 +209,12 @@ export default function PublicTrack() {
           )}
         </div>
       </main>
-      <Player />
+
+      <footer className="border-t border-white/5 py-6">
+        <div className="max-w-3xl mx-auto px-4 text-center text-sm text-muted-foreground">
+          <p>Created with <Link href="/" className="text-primary hover:underline">Void AI</Link> - AI Music Generation</p>
+        </div>
+      </footer>
     </div>
   );
 }
