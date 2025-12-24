@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Void AI</string>
+    <string name="title_activity_main">Void AI</string>
+    <string name="package_name">ai.void.music</string>
+    <string name="custom_url_scheme">ai.void.music</string>
+</resources>
