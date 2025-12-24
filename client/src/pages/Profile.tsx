@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink, Edit2, Check, X, Camera, Sparkles } from "lucide-react";
+import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink, Edit2, Check, X, Camera, Sparkles, Share2 } from "lucide-react";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { useAuth } from "@/lib/authContext";
 import { cn } from "@/lib/utils";
@@ -361,6 +361,29 @@ export default function Profile() {
                 </button>
               )}
             </div>
+            
+            {/* Share Profile Button */}
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}/u/${user?.username}`;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: `${user?.displayName || user?.username}'s Profile`, url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    toast({ title: "Link copied!", description: "Your profile link has been copied" });
+                  }
+                } catch {
+                  await navigator.clipboard.writeText(url);
+                  toast({ title: "Link copied!", description: "Your profile link has been copied" });
+                }
+              }}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors text-sm"
+              data-testid="button-share-profile"
+            >
+              <Share2 className="w-4 h-4" />
+              Share Profile
+            </button>
           </div>
 
           {/* Current Plan */}

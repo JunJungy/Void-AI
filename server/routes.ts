@@ -140,6 +140,94 @@ export async function registerRoutes(
     res.json({ configured: isDiscordConfigured() });
   });
 
+  // Public profile endpoint - accessible without auth
+  app.get("/api/users/:username", async (req, res) => {
+    try {
+      const { username } = req.params;
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Return only minimal public info (no password, email, planType, etc.)
+      const publicProfile = {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+      };
+
+      // Get user's public tracks with only safe fields
+      const tracks = await storage.getTracksByUserId(user.id);
+      const publicTracks = tracks
+        .filter(t => t.status === "SUCCESS")
+        .map(t => ({
+          id: t.id,
+          title: t.title,
+          audioUrl: t.audioUrl,
+          imageUrl: t.imageUrl,
+          duration: t.duration,
+          style: t.style,
+        }));
+
+      res.json({ user: publicProfile, tracks: publicTracks });
+    } catch (error) {
+      console.error("Error fetching public profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  // Public track endpoint - accessible without auth
+  app.get("/api/tracks/:id/public", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const track = await storage.getTrack(id);
+      
+      if (!track) {
+        return res.status(404).json({ error: "Track not found" });
+      }
+
+      if (track.status !== "SUCCESS") {
+        return res.status(404).json({ error: "Track not available" });
+      }
+
+      // Return only safe public fields (no taskId, no raw prompts for instrumental tracks)
+      const publicTrack = {
+        id: track.id,
+        title: track.title,
+        audioUrl: track.audioUrl,
+        imageUrl: track.imageUrl,
+        duration: track.duration,
+        style: track.style,
+        // Only show lyrics if the track has vocals
+        lyrics: track.instrumental ? null : track.lyrics,
+        model: track.model,
+        createdAt: track.createdAt,
+      };
+
+      // Get creator info with minimal public fields
+      let creator = null;
+      if (track.userId) {
+        const user = await storage.getUser(track.userId);
+        if (user) {
+          creator = {
+            id: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          };
+        }
+      }
+
+      res.json({ track: publicTrack, creator });
+    } catch (error) {
+      console.error("Error fetching public track:", error);
+      res.status(500).json({ error: "Failed to fetch track" });
+    }
+  });
+
   app.patch("/api/profile", requireAuth, async (req, res) => {
     try {
       const updates = updateProfileSchema.parse(req.body);

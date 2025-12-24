@@ -21,6 +21,8 @@ import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Admin from "@/pages/Admin";
 import Studio from "@/pages/Studio";
+import PublicProfile from "@/pages/PublicProfile";
+import PublicTrack from "@/pages/PublicTrack";
 
 function Router() {
   return (
@@ -36,6 +38,8 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/admin" component={Admin} />
       <Route path="/studio" component={Studio} />
+      <Route path="/u/:username" component={PublicProfile} />
+      <Route path="/track/:id" component={PublicTrack} />
       <Route component={NotFound} />
     </Switch>
   );
