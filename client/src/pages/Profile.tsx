@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Player } from "@/components/Player";
-import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink, Edit2, Check, X, Camera } from "lucide-react";
+import { User, Settings, CreditCard, LogOut, ChevronRight, Gem, Crown, Diamond, Music2, Loader2, ExternalLink, Edit2, Check, X, Camera, Sparkles } from "lucide-react";
 import { useSubscription, PlanType } from "@/lib/subscriptionContext";
 import { useAuth } from "@/lib/authContext";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,14 @@ const PLAN_INFO: Record<PlanType, { name: string; color: string; icon: any; desc
     description: "Access to v1.5, v5, and v6 models",
     bgColor: "bg-purple-500/10",
     borderColor: "border-purple-500/20"
+  },
+  crystal: { 
+    name: "Crystal", 
+    color: "text-blue-400", 
+    icon: Sparkles,
+    description: "Pro features + Studio audio editing",
+    bgColor: "bg-blue-500/10",
+    borderColor: "border-blue-500/20"
   },
   diamond: { 
     name: "Diamond", 

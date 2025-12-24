@@ -29,6 +29,7 @@ const PLAN_NAMES: Record<PlanType, string> = {
   free: "Free",
   ruby: "Ruby",
   pro: "Pro",
+  crystal: "Crystal",
   diamond: "Diamond",
 };
 
@@ -36,6 +37,7 @@ const PLAN_COLORS: Record<PlanType, string> = {
   free: "text-muted-foreground",
   ruby: "text-red-400",
   pro: "text-purple-400",
+  crystal: "text-blue-400",
   diamond: "text-cyan-400",
 };
 
@@ -357,6 +359,7 @@ export default function Create() {
                 <span className="text-xs text-muted-foreground">Your Plan:</span>
                 <span className={cn("text-sm font-bold", PLAN_COLORS[userPlan])}>
                   {userPlan === "diamond" && <Diamond className="w-3 h-3 inline mr-1" />}
+                  {userPlan === "crystal" && <Sparkles className="w-3 h-3 inline mr-1" />}
                   {userPlan === "pro" && <Crown className="w-3 h-3 inline mr-1" />}
                   {userPlan === "ruby" && <Gem className="w-3 h-3 inline mr-1" />}
                   {PLAN_NAMES[userPlan]}

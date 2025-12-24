@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog, Pencil, Calendar, Hash } from "lucide-react";
+import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog, Pencil, Calendar, Hash, Sparkles } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -48,6 +48,7 @@ interface PromoCode {
 const PLAN_ICONS: Record<string, any> = {
   pro: Crown,
   ruby: Gem,
+  crystal: Sparkles,
   diamond: Diamond,
 };
 
@@ -55,6 +56,7 @@ const PLAN_COLORS: Record<string, string> = {
   free: "bg-gray-500/20 text-gray-400",
   pro: "bg-purple-500/20 text-purple-400",
   ruby: "bg-red-500/20 text-red-400",
+  crystal: "bg-blue-500/20 text-blue-400",
   diamond: "bg-cyan-500/20 text-cyan-400",
 };
 
@@ -419,8 +421,9 @@ export default function Admin() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="free">Free</SelectItem>
-                          <SelectItem value="pro">Pro</SelectItem>
                           <SelectItem value="ruby">Ruby</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="crystal">Crystal</SelectItem>
                           <SelectItem value="diamond">Diamond</SelectItem>
                         </SelectContent>
                       </Select>
@@ -623,8 +626,9 @@ export default function Admin() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pro">Pro</SelectItem>
                             <SelectItem value="ruby">Ruby</SelectItem>
+                            <SelectItem value="pro">Pro</SelectItem>
+                            <SelectItem value="crystal">Crystal</SelectItem>
                             <SelectItem value="diamond">Diamond</SelectItem>
                           </SelectContent>
                         </Select>
@@ -805,8 +809,9 @@ export default function Admin() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pro">Pro</SelectItem>
                           <SelectItem value="ruby">Ruby</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="crystal">Crystal</SelectItem>
                           <SelectItem value="diamond">Diamond</SelectItem>
                         </SelectContent>
                       </Select>

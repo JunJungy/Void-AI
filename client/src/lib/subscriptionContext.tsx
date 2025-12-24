@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 
-export type PlanType = "free" | "ruby" | "pro" | "diamond";
+export type PlanType = "free" | "ruby" | "pro" | "crystal" | "diamond";
 
 interface SubscriptionContextType {
   currentPlan: PlanType;
@@ -28,6 +28,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const checkPlanAccess = useCallback((modelPlan: string, plan: PlanType): boolean => {
     if (plan === "diamond") return true;
     if (modelPlan === "free") return true;
+    if (plan === "crystal" && (modelPlan === "crystal" || modelPlan === "pro" || modelPlan === "ruby")) return true;
     if (plan === "pro" && (modelPlan === "pro" || modelPlan === "ruby")) return true;
     if (plan === "ruby" && modelPlan === "ruby") return true;
     return false;
@@ -45,6 +46,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (canAccessModel(modelPlan)) return null;
     if (modelPlan === "ruby") return "ruby";
     if (modelPlan === "pro") return "pro";
+    if (modelPlan === "crystal") return "crystal";
+    if (modelPlan === "diamond") return "diamond";
     return null;
   }, [canAccessModel]);
 
@@ -52,6 +55,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (canAccessModelWithPlan(modelPlan, userPlan)) return null;
     if (modelPlan === "ruby") return "ruby";
     if (modelPlan === "pro") return "pro";
+    if (modelPlan === "crystal") return "crystal";
+    if (modelPlan === "diamond") return "diamond";
     return null;
   }, [canAccessModelWithPlan]);
 
