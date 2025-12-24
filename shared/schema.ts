@@ -82,8 +82,8 @@ export type InsertTrack = z.infer<typeof insertTrackSchema>;
 export type Track = typeof tracks.$inferSelect;
 
 export const generateMusicSchema = z.object({
-  prompt: z.string().min(1).max(500),
-  style: z.string().optional(),
+  prompt: z.string().min(1).max(10000),
+  style: z.string().max(10000).optional(),
   title: z.string().max(80).optional(),
   lyrics: z.string().max(5000).optional(),
   model: z.enum(["V4", "V4_5", "V4_5PLUS", "V5"]).default("V4"),
