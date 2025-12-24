@@ -495,9 +495,26 @@ export async function registerRoutes(
       const baseUrl = `${req.protocol}://${req.get('host')}`;
 
       let customerId = user.stripeCustomerId;
+      
+      // Always try to create/verify customer exists
+      try {
+        if (customerId) {
+          // Verify the customer exists in current Stripe mode
+          const stripe = (await import('./stripeClient')).getUncachableStripeClient();
+          await (await stripe).customers.retrieve(customerId);
+        }
+      } catch (e: any) {
+        // Customer doesn't exist in current mode, create new one
+        if (e.code === 'resource_missing') {
+          customerId = null;
+        } else {
+          throw e;
+        }
+      }
+      
       if (!customerId) {
         const customer = await stripeService.createCustomer(user.email, {
-          userId: user.id,
+          userId: String(user.id),
           username: user.username,
         });
         customerId = customer.id;
@@ -531,28 +548,41 @@ export async function registerRoutes(
         });
       }
 
-      const [paymentMethods, subscriptions] = await Promise.all([
-        stripeService.getCustomerPaymentMethods(user.stripeCustomerId),
-        stripeService.getCustomerSubscriptions(user.stripeCustomerId),
-      ]);
+      try {
+        const [paymentMethods, subscriptions] = await Promise.all([
+          stripeService.getCustomerPaymentMethods(user.stripeCustomerId),
+          stripeService.getCustomerSubscriptions(user.stripeCustomerId),
+        ]);
 
-      const activeSubscription = subscriptions[0] as any || null;
-      const defaultPaymentMethod = paymentMethods[0] || null;
+        const activeSubscription = subscriptions[0] as any || null;
+        const defaultPaymentMethod = paymentMethods[0] || null;
 
-      res.json({
-        hasSubscription: !!activeSubscription,
-        paymentMethod: defaultPaymentMethod ? {
-          brand: defaultPaymentMethod.card?.brand,
-          last4: defaultPaymentMethod.card?.last4,
-          expMonth: defaultPaymentMethod.card?.exp_month,
-          expYear: defaultPaymentMethod.card?.exp_year,
-        } : null,
-        subscription: activeSubscription ? {
-          status: activeSubscription.status,
-          currentPeriodEnd: activeSubscription.current_period_end,
-          cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
-        } : null,
-      });
+        res.json({
+          hasSubscription: !!activeSubscription,
+          paymentMethod: defaultPaymentMethod ? {
+            brand: defaultPaymentMethod.card?.brand,
+            last4: defaultPaymentMethod.card?.last4,
+            expMonth: defaultPaymentMethod.card?.exp_month,
+            expYear: defaultPaymentMethod.card?.exp_year,
+          } : null,
+          subscription: activeSubscription ? {
+            status: activeSubscription.status,
+            currentPeriodEnd: activeSubscription.current_period_end,
+            cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
+          } : null,
+        });
+      } catch (e: any) {
+        // Customer doesn't exist in current Stripe mode, clear it
+        if (e.code === 'resource_missing') {
+          await storage.updateUserProfile(user.id, { stripeCustomerId: undefined });
+          return res.json({ 
+            hasSubscription: false,
+            paymentMethod: null,
+            subscription: null
+          });
+        }
+        throw e;
+      }
     } catch (error) {
       console.error("Billing summary error:", error);
       res.status(500).json({ error: "Failed to get billing summary" });
