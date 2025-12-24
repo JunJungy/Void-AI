@@ -395,6 +395,33 @@ export default function Settings() {
               )}
             </div>
           </div>
+
+          <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-white/5">
+              <h2 className="font-semibold">Legal</h2>
+            </div>
+            
+            <div className="p-4 space-y-2">
+              <Link href="/privacy">
+                <div className="flex items-center justify-between py-2 hover:bg-white/5 rounded-lg px-2 cursor-pointer transition-colors" data-testid="link-privacy">
+                  <span className="text-muted-foreground">Privacy Policy</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Link>
+              <Link href="/terms">
+                <div className="flex items-center justify-between py-2 hover:bg-white/5 rounded-lg px-2 cursor-pointer transition-colors" data-testid="link-terms">
+                  <span className="text-muted-foreground">Terms of Service</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Link>
+              <Link href="/refund">
+                <div className="flex items-center justify-between py-2 hover:bg-white/5 rounded-lg px-2 cursor-pointer transition-colors" data-testid="link-refund">
+                  <span className="text-muted-foreground">Refund Policy</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              </Link>
+            </div>
+          </div>
         </div>
       </main>
 

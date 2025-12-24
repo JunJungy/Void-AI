@@ -990,6 +990,31 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/users/:id/reset-password", requireAuth, requireOwner, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: "Password must be at least 6 characters" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const bcrypt = (await import("bcryptjs")).default;
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(userId, hashedPassword);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   app.get("/api/admin/promo-codes", requireAuth, requireOwner, async (req, res) => {
     try {
       const codes = await storage.getAllPromoCodes();

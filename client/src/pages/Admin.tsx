@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog, Pencil, Calendar, Hash, Sparkles } from "lucide-react";
+import { Users, Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2, Crown, Gem, Diamond, Search, Copy, Check, Ban, Shield, ShieldOff, AlertTriangle, MoreVertical, Coins, UserCog, Pencil, Calendar, Hash, Sparkles, Key } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -77,9 +77,11 @@ export default function Admin() {
   const [banDialogOpen, setBanDialogOpen] = useState(false);
   const [adminDialogOpen, setAdminDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("free");
   const [creditAmount, setCreditAmount] = useState(50);
   const [banReason, setBanReason] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   
   // Promo code action dialogs state
   const [selectedCode, setSelectedCode] = useState<PromoCode | null>(null);
@@ -251,6 +253,21 @@ export default function Admin() {
     },
   });
 
+  const resetPassword = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/reset-password`, { newPassword });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password reset successfully" });
+      setPasswordDialogOpen(false);
+      setNewPassword("");
+    },
+    onError: () => {
+      toast({ title: "Failed to reset password", variant: "destructive" });
+    },
+  });
+
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
@@ -364,6 +381,13 @@ export default function Admin() {
                               >
                                 <Coins className="w-4 h-4 mr-2" />
                                 Add Credits
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => { setSelectedUser(u); setNewPassword(""); setPasswordDialogOpen(true); }}
+                                data-testid={`menuitem-password-${u.id}`}
+                              >
+                                <Key className="w-4 h-4 mr-2" />
+                                Reset Password
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -583,6 +607,48 @@ export default function Admin() {
                       className="bg-red-600 hover:bg-red-700"
                     >
                       Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Reset Password Dialog */}
+              <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                <DialogContent className="bg-background border-white/10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Key className="w-5 h-5 text-purple-500" />
+                      Reset Password
+                    </DialogTitle>
+                    <DialogDescription>
+                      Set a new password for {selectedUser?.displayName || selectedUser?.username}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>New Password</Label>
+                      <Input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password (min 6 characters)"
+                        className="bg-white/5 border-white/10"
+                        data-testid="input-new-password"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPasswordDialogOpen(false)} className="bg-white/5 border-white/10">Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser && newPassword.length >= 6) {
+                          resetPassword.mutate({ userId: selectedUser.id, newPassword });
+                        }
+                      }}
+                      disabled={newPassword.length < 6 || resetPassword.isPending}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {resetPassword.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Reset Password"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>

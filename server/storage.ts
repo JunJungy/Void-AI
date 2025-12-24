@@ -50,6 +50,7 @@ export interface IStorage {
   banUser(id: string, isBanned: boolean): Promise<User | undefined>;
   setUserOwner(id: string, isOwner: boolean): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -280,6 +281,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(videoJobs).where(eq(videoJobs.userId, id));
     await db.delete(codeRedemptions).where(eq(codeRedemptions.userId, id));
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
   }
 }
 
