@@ -7,10 +7,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "ai.void.music"
+    namespace "com.voidai.music"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "ai.void.music"
+        applicationId "com.voidai.music"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

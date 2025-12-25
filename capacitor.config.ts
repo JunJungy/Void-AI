@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'ai.void.music',
+  appId: 'com.voidai.music',
   appName: 'Void AI',
   webDir: 'dist/public',
   server: {

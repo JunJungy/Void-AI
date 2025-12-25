@@ -1,4 +1,4 @@
-package ai.void.music;
+package com.voidai.music;
 
 import com.getcapacitor.BridgeActivity;
 
