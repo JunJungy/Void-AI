@@ -8,4 +8,4 @@ vite.config.ts.*
 # Android signing (keep these private!)
 android/keystore/
 *.keystore
-*.jks
+*.jksattached_assets/*.json
