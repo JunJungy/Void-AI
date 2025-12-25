@@ -4,3 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Android signing (keep these private!)
+android/keystore/
+*.keystore
+*.jks

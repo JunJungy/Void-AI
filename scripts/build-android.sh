@@ -1,8 +1,13 @@
 #!/bin/bash
 
 echo "=========================================="
-echo "Void AI - Android APK Build Script"
+echo "Void AI - Android Build Script"
 echo "=========================================="
+echo ""
+echo "Usage: ./scripts/build-android.sh [debug|release|bundle]"
+echo "  debug   - Debug APK for testing"
+echo "  release - Signed release APK"
+echo "  bundle  - Signed AAB for Play Store (recommended)"
 echo ""
 
 BUILD_TYPE=${1:-debug}
@@ -29,16 +34,36 @@ echo "Step 3: Making gradlew executable..."
 chmod +x android/gradlew
 
 echo ""
-echo "Step 4: Building Android APK ($BUILD_TYPE)..."
+echo "Step 4: Building Android ($BUILD_TYPE)..."
 cd android
 
-if [ "$BUILD_TYPE" = "release" ]; then
-    ./gradlew assembleRelease
-    APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
-else
-    ./gradlew assembleDebug
-    APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
-fi
+case "$BUILD_TYPE" in
+    "release")
+        if [ ! -f "keystore/keystore.properties" ]; then
+            echo "Error: keystore.properties not found!"
+            echo "Run ./scripts/generate-keystore.sh first to create a signing key."
+            exit 1
+        fi
+        ./gradlew assembleRelease
+        OUTPUT_PATH="app/build/outputs/apk/release/app-release.apk"
+        OUTPUT_TYPE="APK"
+        ;;
+    "bundle")
+        if [ ! -f "keystore/keystore.properties" ]; then
+            echo "Error: keystore.properties not found!"
+            echo "Run ./scripts/generate-keystore.sh first to create a signing key."
+            exit 1
+        fi
+        ./gradlew bundleRelease
+        OUTPUT_PATH="app/build/outputs/bundle/release/app-release.aab"
+        OUTPUT_TYPE="AAB (App Bundle)"
+        ;;
+    *)
+        ./gradlew assembleDebug
+        OUTPUT_PATH="app/build/outputs/apk/debug/app-debug.apk"
+        OUTPUT_TYPE="APK"
+        ;;
+esac
 
 if [ $? -ne 0 ]; then
     echo "Error: Gradle build failed!"
@@ -52,8 +77,17 @@ echo "=========================================="
 echo "BUILD SUCCESSFUL!"
 echo "=========================================="
 echo ""
-echo "APK Location: android/$APK_PATH"
+echo "$OUTPUT_TYPE Location: android/$OUTPUT_PATH"
 echo ""
-echo "To install on device:"
-echo "  adb install android/$APK_PATH"
+
+if [ "$BUILD_TYPE" = "debug" ]; then
+    echo "To install on device:"
+    echo "  adb install android/$OUTPUT_PATH"
+elif [ "$BUILD_TYPE" = "release" ]; then
+    echo "This APK is signed and ready for distribution."
+    echo "You can upload it to Play Store or share directly."
+elif [ "$BUILD_TYPE" = "bundle" ]; then
+    echo "This AAB is ready for Google Play Store upload."
+    echo "Play Store will generate optimized APKs for each device."
+fi
 echo ""
